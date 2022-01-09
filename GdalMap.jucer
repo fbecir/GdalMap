@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<JUCERPROJECT id="uLiAd6" name="GdalMap" projectType="guiapp" useAppConfig="0"
+              addUsingNamespaceToJuceHeader="0" displaySplashScreen="1" jucerFormatVersion="1"
+              defines="JUCE_MODAL_LOOPS_PERMITTED=1" bundleIdentifier="fr.ign.gdalmap"
+              companyName="IGN">
+  <MAINGROUP id="FpGinB" name="GdalMap">
+    <GROUP id="{AD36F250-69FA-EB93-96A6-624AD0FAFCCF}" name="Source">
+      <FILE id="aR8wrx" name="FeatureViewer.cpp" compile="1" resource="0"
+            file="Source/FeatureViewer.cpp"/>
+      <FILE id="jPi8xH" name="FeatureViewer.h" compile="0" resource="0" file="Source/FeatureViewer.h"/>
+      <FILE id="RiQyQS" name="GeoBase.cpp" compile="1" resource="0" file="Source/GeoBase.cpp"/>
+      <FILE id="Bm2ZuE" name="GeoBase.h" compile="0" resource="0" file="Source/GeoBase.h"/>
+      <FILE id="NoEwyt" name="LayerViewer.cpp" compile="1" resource="0" file="Source/LayerViewer.cpp"/>
+      <FILE id="m06IZw" name="LayerViewer.h" compile="0" resource="0" file="Source/LayerViewer.h"/>
+      <FILE id="cw0Zs1" name="MapThread.cpp" compile="1" resource="0" file="Source/MapThread.cpp"/>
+      <FILE id="gh7Rww" name="MapThread.h" compile="0" resource="0" file="Source/MapThread.h"/>
+      <FILE id="IMdW0c" name="SelectionViewer.cpp" compile="1" resource="0"
+            file="Source/SelectionViewer.cpp"/>
+      <FILE id="bo21uP" name="SelectionViewer.h" compile="0" resource="0"
+            file="Source/SelectionViewer.h"/>
+      <FILE id="jXuCap" name="Translation_fr.txt" compile="0" resource="1"
+            file="Source/Translation_fr.txt"/>
+      <FILE id="ZFvugC" name="MapView.cpp" compile="1" resource="0" file="Source/MapView.cpp"/>
+      <FILE id="vytVOi" name="MapView.h" compile="0" resource="0" file="Source/MapView.h"/>
+      <FILE id="f4WU9v" name="Main.cpp" compile="1" resource="0" file="Source/Main.cpp"/>
+      <FILE id="gmNBRa" name="MainComponent.h" compile="0" resource="0" file="Source/MainComponent.h"/>
+      <FILE id="yMSUyJ" name="MainComponent.cpp" compile="1" resource="0"
+            file="Source/MainComponent.cpp"/>
+    </GROUP>
+  </MAINGROUP>
+  <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1"/>
+  <EXPORTFORMATS>
+    <LINUX_MAKE targetFolder="Builds/LinuxMakefile">
+      <CONFIGURATIONS>
+        <CONFIGURATION isDebug="1" name="Debug" targetName="GdalMap"/>
+        <CONFIGURATION isDebug="0" name="Release" targetName="GdalMap"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_core" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="../../JUCE/modules"/>
+      </MODULEPATHS>
+    </LINUX_MAKE>
+    <VS2022 targetFolder="Builds/VisualStudio2022" externalLibraries="gdal_i.lib"
+            userNotes="Environment :&#10;PATH=D:\Anaconda3\Library\bin;%PATH%&#10;PROJ_LIB=D:\Anaconda3\Library\share\proj">
+      <CONFIGURATIONS>
+        <CONFIGURATION isDebug="1" name="Debug" targetName="GdalMap" headerPath="D:\Anaconda3\Library\include;"
+                       libraryPath="D:\Anaconda3\Library\lib\"/>
+        <CONFIGURATION isDebug="0" name="Release" targetName="GdalMap" headerPath="D:\Anaconda3\Library\include;"
+                       libraryPath="D:\Anaconda3\Library\lib\"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_core" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="../../JUCE/modules"/>
+      </MODULEPATHS>
+    </VS2022>
+  </EXPORTFORMATS>
+  <MODULES>
+    <MODULE id="juce_core" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_data_structures" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_events" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_graphics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_gui_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_gui_extra" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+  </MODULES>
+</JUCERPROJECT>

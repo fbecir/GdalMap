@@ -1,0 +1,15 @@
+language: French
+countries: fr be mc ch lu
+ 
+"Name" = "Nom"
+"Value" = "Valeur"
+"Add vector data" = "Ajouter des données vectorielles"
+"Add raster data" = "Ajouter des images"
+"Quit" = "Quitter"
+"About GDAL" = "A propos de GDAL"
+"Selection" = "Sélection"
+"File" = "Fichier"
+"Edit" = "Edition"
+"Pen" = "Stylo"
+"Brush" = "Pinceau"
+"Width" = "Epaisseur"
