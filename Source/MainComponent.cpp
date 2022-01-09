@@ -295,8 +295,8 @@ void MainComponent::actionListenerCallback(const juce::String& message)
 	}
 	if (message == "UpdateSelectFeatures") {
 		m_SelectionViewer.get()->SetBase(&m_Base);
-		if (m_Base.GetSelectionCount() == 1) {
-			GeoBase::Feature geoFeature = m_Base.GetSelection(0);
+		if (m_Base.GetSelectionCount() >= 1) {
+			GeoBase::Feature geoFeature = m_Base.GetSelection(m_Base.GetSelectionCount()-1);
 			m_Base.SelectFeatureFields(geoFeature.IdLayer(), geoFeature.Id());
 			m_FeatureViewer.get()->SetBase(&m_Base);
 		}

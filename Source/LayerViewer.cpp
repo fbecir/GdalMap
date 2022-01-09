@@ -66,7 +66,7 @@ void LayerViewerModel::paintCell(juce::Graphics& g, int rowNumber, int columnId,
 }
 
 //==============================================================================
-// Double-clic dans une cellule
+// Clic dans une cellule
 //==============================================================================
 void LayerViewerModel::cellClicked(int rowNumber, int columnId, const juce::MouseEvent& event)
 {
@@ -110,6 +110,17 @@ void LayerViewerModel::cellClicked(int rowNumber, int columnId, const juce::Mous
 		juce::CallOutBox::launchAsynchronously(std::move(widthSelector), bounds, nullptr);
 		return;
 	}
+}
+
+//==============================================================================
+// Drag&Drop des lignes pour changer l'ordre des layers
+//==============================================================================
+juce::var LayerViewerModel::getDragSourceDescription(const juce::SparseSet<int>& selectedRows)
+{
+	juce::StringArray rows;
+	for (int i = 0; i < selectedRows.size(); i++)
+		rows.add(juce::String(selectedRows[i]));
+	return rows.joinIntoString(":");
 }
 
 //==============================================================================
@@ -162,17 +173,16 @@ LayerViewer::LayerViewer()
 	setName("Layers");
 	m_Model.addActionListener(this);
 	// Bordure
-	setColour(juce::ListBox::outlineColourId, juce::Colours::grey);
-	setOutlineThickness(1);
+	m_Table.setColour(juce::ListBox::outlineColourId, juce::Colours::grey);
+	m_Table.setOutlineThickness(1);
 	// Ajout des colonnes
-	getHeader().addColumn(juce::translate("Name"), LayerViewerModel::Column::Name, 200);
-	getHeader().addColumn(juce::translate("Width"), LayerViewerModel::Column::PenWidth, 50);
-	getHeader().addColumn(juce::translate("Pen"), LayerViewerModel::Column::PenColour, 50);
-	getHeader().addColumn(juce::translate("Brush"), LayerViewerModel::Column::FillColour, 50);
-
-	setSize(352, 200);
-
-	setModel(&m_Model);
+	m_Table.getHeader().addColumn(juce::translate("Name"), LayerViewerModel::Column::Name, 200);
+	m_Table.getHeader().addColumn(juce::translate("Width"), LayerViewerModel::Column::PenWidth, 50);
+	m_Table.getHeader().addColumn(juce::translate("Pen"), LayerViewerModel::Column::PenColour, 50);
+	m_Table.getHeader().addColumn(juce::translate("Brush"), LayerViewerModel::Column::FillColour, 50);
+	m_Table.setSize(352, 200);
+	m_Table.setModel(&m_Model);
+	addAndMakeVisible(m_Table);
 }
 
 //==============================================================================
@@ -180,10 +190,10 @@ LayerViewer::LayerViewer()
 //==============================================================================
 void LayerViewer::UpdateColumnName()
 {
-	getHeader().setColumnName(LayerViewerModel::Column::Name, juce::translate("Name"));
-	getHeader().setColumnName(LayerViewerModel::Column::PenWidth, juce::translate("Width"));
-	getHeader().setColumnName(LayerViewerModel::Column::PenColour, juce::translate("Pen"));
-	getHeader().setColumnName(LayerViewerModel::Column::FillColour, juce::translate("Brush"));
+	m_Table.getHeader().setColumnName(LayerViewerModel::Column::Name, juce::translate("Name"));
+	m_Table.getHeader().setColumnName(LayerViewerModel::Column::PenWidth, juce::translate("Width"));
+	m_Table.getHeader().setColumnName(LayerViewerModel::Column::PenColour, juce::translate("Pen"));
+	m_Table.getHeader().setColumnName(LayerViewerModel::Column::FillColour, juce::translate("Brush"));
 }
 
 //==============================================================================
@@ -194,4 +204,30 @@ void LayerViewer::actionListenerCallback(const juce::String& message)
 	if (message == "UpdateRepres") {
 		repaint();
 	}
+}
+
+//==============================================================================
+// Drag&Drop
+//==============================================================================
+void LayerViewer::itemDropped(const SourceDetails& details)
+{
+	juce::String message = details.description.toString();
+	juce::StringArray T;
+	T.addTokens(message, ":", "");
+	if (T.size() < 1)
+		return;
+	int i;
+	i = T[0].getIntValue();
+	int row = m_Table.getRowContainingPosition(details.localPosition.x, details.localPosition.y);
+	m_Base->ReorderVectorLayer(i, row);
+	//m_Table.updateContent();
+	//m_Table.repaint();
+	m_Model.sendActionMessage("UpdateRepres");
+}
+
+bool LayerViewer::isInterestedInDragSource(const SourceDetails& details)
+{
+	if (details.sourceComponent.get() != &m_Table)
+		return false;
+	return true;
 }

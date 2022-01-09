@@ -133,6 +133,31 @@ bool GeoBase::SelectFeatureFields(int layerId, GIntBig featureId)
 }
 
 //==============================================================================
+// Change l'ordre des layers
+//==============================================================================
+bool GeoBase::ReorderVectorLayer(int oldPosition, int newPosition)
+{
+	if (oldPosition >= m_VLayers.size())
+		return false;
+	VectorLayer* layer = m_VLayers[oldPosition];
+	m_VLayers.erase(m_VLayers.begin() + oldPosition);
+	if (newPosition < 0) {
+		m_VLayers.push_back(layer);
+		return true;
+	}
+	if (newPosition < oldPosition) {
+		m_VLayers.insert(m_VLayers.begin() + newPosition, layer);
+		return true;
+	}
+	if (newPosition <= m_VLayers.size()) {
+		m_VLayers.insert(m_VLayers.begin() + newPosition - 1, layer);
+		return true;
+	}
+	m_VLayers.push_back(layer);
+	return true;
+}
+
+//==============================================================================
 // Constructeur GeoLayer
 //==============================================================================
 GeoBase::VectorLayer::VectorLayer()

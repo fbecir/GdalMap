@@ -28,6 +28,7 @@ public:
 
 	int GetVectorLayerCount() { return m_VLayers.size(); }
 	VectorLayer* GetVectorLayer(int i) { if (i < m_VLayers.size()) return m_VLayers[i]; return nullptr; }
+	bool ReorderVectorLayer(int oldPosition, int newPosition);
 	OGRLayer* GetOGRLayer(int i) { if (i < m_VLayers.size()) return m_VLayers[i]->GetOGRLayer(); return nullptr; }
 	int GetRasterLayerCount() { return m_RLayers.size(); }
 	RasterLayer* GetRasterLayer(int i) { if (i < m_RLayers.size()) return m_RLayers[i]; return nullptr; }
