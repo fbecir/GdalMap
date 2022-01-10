@@ -22,28 +22,34 @@ public:
   void SetEnvelope(const double& x0, const double& y0, const double& x1, const double& y1);
   void SetTransform(const double& X0, const double& Y0, const double& scale) { m_dX0 = X0; m_dY0 = Y0; m_dScale = scale; }
   void SetBase(GeoBase* base) { m_Base = base; }
+  void SetUpdate(bool raster, bool vector, bool overlay);
 
   juce::int64 NumObjects() { return m_nNumObjects; }
   OGREnvelope Envelope() { return m_Env; }
+  OGRSpatialReference* SpatialRef() { return &m_SpatialRef; }
 
 	virtual void 	run() override;
 	void Draw(juce::Graphics& g, int x0 = 0, int y0 = 0);
 
 private:
-  juce::Image m_Image;
+  juce::Image m_Raster;
+  juce::Image m_Vector;
+  juce::Image m_Overlay;
   GeoBase*    m_Base;
   double        m_dX0, m_dY0, m_dScale; // Transformation terrain -> pixel
+  bool          m_bRaster, m_bVector, m_bOverlay; // Couches a dessiner
   double*       m_Pt;
   int           m_nPtAlloc;
   juce::Path    m_Path;
   bool          m_bFill;        // Indique que le path doit etre rempli
   juce::int64   m_nNumObjects;  // Nombre d'objets affiches dans la vue
   OGREnvelope   m_Env;
+  OGRSpatialReference m_SpatialRef;
 
   bool AllocPoints(int numPt);
 
   void DrawLayer(GeoBase::VectorLayer* layer);
-  void DrawGeometry(juce::Graphics&, const OGRGeometry*);
+  void DrawGeometry(const OGRGeometry*);
   void DrawPoint(const OGRGeometry*);
   void DrawPolygon(const OGRGeometry*);
   void DrawMultiPolygon(const OGRGeometry*);
@@ -54,5 +60,6 @@ private:
   void DrawLinearRing(const OGRLinearRing*);
 
   void DrawLayer(GeoBase::RasterLayer* layer);
-  void DrawRaster(GDALDataset* poDataset);
+  void DrawRaster(GDALDataset* poDataset, float opacity = 1.f);
+  void DrawSelection();
 };

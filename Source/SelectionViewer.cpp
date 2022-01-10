@@ -79,6 +79,10 @@ void SelectionViewerModel::cellDoubleClicked(int rowNumber, int columnId, const 
 		return;
 	GeoBase::Feature geoFeature = m_Base->GetSelection(rowNumber);
 	OGREnvelope env = geoFeature.Envelope();
+	OGRLayer* layer = m_Base->GetOGRLayer(geoFeature.IdLayer());
+	if (layer == nullptr)
+		return;
+	env = GeoBase::ConvertEnvelop(env, layer->GetSpatialRef(), m_Base->SpatialRef());
 	sendActionMessage("ZoomEnvelope:" + juce::String(env.MinX,2) + ":" + juce::String(env.MaxX,2) + ":" +
 																			juce::String(env.MinY,2) + ":" + juce::String(env.MaxY,2));
 	sendActionMessage("SelectFeature:"+ juce::String(geoFeature.Id())+":"+juce::String(geoFeature.IdLayer()));

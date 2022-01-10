@@ -7,10 +7,6 @@
 
 #include "MainComponent.h"
 
-#include "gdal_priv.h"
-#include "cpl_conv.h" // for CPLMalloc()
-#include "ogrsf_frmts.h"
-
 //==============================================================================
 MainComponent::MainComponent()
 {
@@ -31,6 +27,11 @@ MainComponent::MainComponent()
 	m_LayerViewer.get()->SetBase(&m_Base);
 	m_LayerViewer.get()->SetActionListener(this);
 
+	m_RasterLayerViewer.reset(new RasterLayerViewer);
+	addAndMakeVisible(m_RasterLayerViewer.get());
+	m_RasterLayerViewer.get()->SetBase(&m_Base);
+	m_RasterLayerViewer.get()->SetActionListener(this);
+
 	m_SelectionViewer.reset(new SelectionViewer);
 	addAndMakeVisible(m_SelectionViewer.get());
 	m_SelectionViewer.get()->SetBase(&m_Base);
@@ -42,9 +43,11 @@ MainComponent::MainComponent()
 	m_Panel.reset(new juce::ConcertinaPanel);
 	addAndMakeVisible(m_Panel.get());
 	m_Panel.get()->addPanel(-1, m_LayerViewer.get(), false);
+	m_Panel.get()->addPanel(-1, m_RasterLayerViewer.get(), false);
 	m_Panel.get()->addPanel(-1, m_SelectionViewer.get(), false);
 	m_Panel.get()->setCustomPanelHeader(m_Panel.get()->getPanel(0), new juce::TextButton(juce::translate("Layers")), true);
-	m_Panel.get()->setCustomPanelHeader(m_Panel.get()->getPanel(1), new juce::TextButton(juce::translate("Selection")), true);
+	m_Panel.get()->setCustomPanelHeader(m_Panel.get()->getPanel(1), new juce::TextButton(juce::translate("Images")), true);
+	m_Panel.get()->setCustomPanelHeader(m_Panel.get()->getPanel(2), new juce::TextButton(juce::translate("Selection")), true);
 
 	// set up the layout and resizer bars..
 	m_VerticalLayout.setItemLayout(0, -0.2, -1.0, -0.65); 
@@ -216,7 +219,7 @@ void MainComponent::getCommandInfo(juce::CommandID commandID, juce::ApplicationC
 			result.setTicked(m_FeatureViewer.get()->isVisible());
 		break;
 	case CommandIDs::gdalAbout:
-		result.setInfo(juce::translate("About GDAL"), juce::translate("About GDAL"), "Menu", 0);
+		result.setInfo(juce::translate("About GdalMap"), juce::translate("About GdalMap"), "Menu", 0);
 		break;
 	default:
 		result.setInfo("Test", "Test menu", "Menu", 0);
@@ -274,7 +277,7 @@ bool MainComponent::perform(const InvocationInfo& info)
 		m_FeatureViewer.get()->setVisible(!m_FeatureViewer.get()->isVisible());
 		break;
 	case CommandIDs::gdalAbout:
-		AboutGdal();
+		AboutGdalMap();
 		break;
 	default:
 		return false;
@@ -300,6 +303,7 @@ void MainComponent::actionListenerCallback(const juce::String& message)
 			m_Base.SelectFeatureFields(geoFeature.IdLayer(), geoFeature.Id());
 			m_FeatureViewer.get()->SetBase(&m_Base);
 		}
+		m_MapView.get()->RenderMap(false, false, true);
 		return;
 	}
 	
@@ -418,19 +422,22 @@ void MainComponent::Clear()
 	m_FeatureViewer.get()->SetBase(&m_Base);
 	m_SelectionViewer.get()->SetBase(&m_Base);
 	m_LayerViewer.get()->SetBase(&m_Base);
+	m_RasterLayerViewer.get()->SetBase(&m_Base);
 	m_MapView.get()->SetBase(&m_Base);
 }
 
 //==============================================================================
 // A propos
 //==============================================================================
-void MainComponent::AboutGdal()
+void MainComponent::AboutGdalMap()
 {
 	juce::String version = GDALVersionInfo("VERSION_NUM");
 	juce::String info = GDALVersionInfo("-version");
-	juce::String message = "Version : " + version + "\n" + info;
+	juce::String message = "GDAL Version : " + version + "\n" + info + "\n";
+	message += "JUCE Version : " + juce::String(JUCE_MAJOR_VERSION) + "."
+		+ juce::String(JUCE_MINOR_VERSION) + "." + juce::String(JUCE_BUILDNUMBER);
 	juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
-		juce::translate("About GDAL"), message, "OK");
+		juce::translate("About GdalMap"), message, "OK");
 }
 
 //==============================================================================
@@ -461,20 +468,23 @@ bool MainComponent::AddRasterLayer()
 	juce::String filename = OpenFile("RasterPath");
 	if (filename.isEmpty())
 		return false;
+	juce::File file(filename);
+	juce::String name = file.getFileNameWithoutExtension();
 
-	if (!m_Base.OpenRasterDataset(filename.getCharPointer())) {
+	if (!m_Base.OpenRasterDataset(filename.getCharPointer(), name.getCharPointer()) ){
 		juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "GdalMap", "Impossible d'ouvrir le fichier " + filename, "OK");
 		return false;
 	}
 	m_Frame = m_Base.GetEnvelope();
 	m_MapView.get()->SetFrame(m_Frame);
-	m_LayerViewer.get()->SetBase(&m_Base);
+	m_RasterLayerViewer.get()->SetBase(&m_Base);
 
 	return true;
 }
 
 void MainComponent::Test()
 {
+	/*
 	juce::String filename = OpenFile();
 	if (filename.isEmpty())
 		return;
@@ -486,15 +496,17 @@ void MainComponent::Test()
 	m_LayerViewer.get()->UpdateColumnName();
 	m_SelectionViewer.get()->UpdateColumnName();
 
-	return;
+	return;*/
 
 
 	juce::String server = "WMTS:https://maps.wien.gv.at/wmts/1.0.0/WMTSCapabilities.xml,layer=lb";
 	server = "WMTS:https://wxs.ign.fr/ortho/geoportail/wmts?EXCEPTIONS=text/xml&&SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetCapabilities,layer=ORTHOIMAGERY.ORTHOPHOTOS";
 	//server = "WMTS:https://wxs.ign.fr/ortho/geoportail/wmts?EXCEPTIONS=text/xml&&SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetCapabilities,layer=PCRS.LAMB93";
-	server = "WMTS:https://wxs.ign.fr/orthohisto/geoportail/wmts?EXCEPTIONS=text/xml&&SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetCapabilities,layer=ORTHOIMAGERY.ORTHOPHOTOS.1950-1965";
+	//server = "WMTS:https://wxs.ign.fr/orthohisto/geoportail/wmts?EXCEPTIONS=text/xml&&SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetCapabilities,layer=ORTHOIMAGERY.ORTHOPHOTOS.1950-1965";
 	//server = "WMTS:https://wxs.ign.fr/orthohisto/geoportail/wmts?EXCEPTIONS=text/xml&&SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetCapabilities,layer=ORTHOIMAGERY.ORTHOPHOTOS2011-2015";
-	if (!m_Base.OpenRasterDataset(server.toStdString().c_str())) {
+	//server = "TMS:https://tile.openstreetmap.org/${z}/${x}/${y}.png";
+	//server = "WMS:http://a.tile.opencyclemap.org/cycle/${z}/${x}/${y}.png";
+	if (!m_Base.OpenRasterDataset(server.toStdString().c_str(), "WMTS")) {
 		return;
 	}
 	m_Frame = m_Base.GetEnvelope();

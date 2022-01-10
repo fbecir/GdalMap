@@ -15,7 +15,7 @@
 //==============================================================================
 GeoBase::GeoBase()
 {
-
+	m_SpatialRef.importFromEPSG(3857);
 }
 
 //==============================================================================
@@ -57,7 +57,8 @@ bool GeoBase::OpenVectorDataset(const char* filename)
 			continue;
 		}
 		m_VLayers.push_back(layer);
-		m_Env.Merge(layer->Envelope());
+		total = layer->Envelope();
+		m_Env.Merge(ConvertEnvelop(total, layer->SpatialRef(), &m_SpatialRef));
 	}
 	m_Dataset.push_back(poDataset);
 
@@ -67,7 +68,7 @@ bool GeoBase::OpenVectorDataset(const char* filename)
 //==============================================================================
 // Ouverture d'un dataset raster
 //==============================================================================
-bool GeoBase::OpenRasterDataset(const char* filename)
+bool GeoBase::OpenRasterDataset(const char* filename, const char* name)
 {
 	GDALDataset* poDataset = GDALDataset::Open(filename, GDAL_OF_RASTER | GDAL_OF_READONLY);
 	if (poDataset == NULL)
@@ -75,6 +76,8 @@ bool GeoBase::OpenRasterDataset(const char* filename)
 
 	RasterLayer* layer = new RasterLayer;
 	if (layer->AddDataset(poDataset)) {
+		if (name != nullptr)
+			layer->Name(name);
 		m_RLayers.push_back(layer);
 		m_Dataset.push_back(poDataset);
 		m_Env.Merge(layer->Envelope());
@@ -88,14 +91,14 @@ bool GeoBase::OpenRasterDataset(const char* filename)
 //==============================================================================
 // Selection des features dans une enveloppe
 //==============================================================================
-size_t GeoBase::SelectFeatures(const OGREnvelope& env)
+size_t GeoBase::SelectFeatures(const OGREnvelope& env, OGRSpatialReference* spatialRef)
 {
 	m_Selection.clear();
 	for (int layerId = 0; layerId < GetVectorLayerCount(); layerId++) {
 		VectorLayer* poLayer = GetVectorLayer(layerId);
 		if (poLayer == nullptr)
 			continue;
-		poLayer->SetSpatialFilterRect(env);
+		poLayer->SetSpatialFilterRect(env, spatialRef);
 		poLayer->ResetReading();
 		GIntBig featureId;
 		OGREnvelope featureEnv;
@@ -133,7 +136,7 @@ bool GeoBase::SelectFeatureFields(int layerId, GIntBig featureId)
 }
 
 //==============================================================================
-// Change l'ordre des layers
+// Change l'ordre des layers vectoriels
 //==============================================================================
 bool GeoBase::ReorderVectorLayer(int oldPosition, int newPosition)
 {
@@ -155,6 +158,54 @@ bool GeoBase::ReorderVectorLayer(int oldPosition, int newPosition)
 	}
 	m_VLayers.push_back(layer);
 	return true;
+}
+
+//==============================================================================
+// Change l'ordre des layers vectoriels
+//==============================================================================
+bool GeoBase::ReorderRasterLayer(int oldPosition, int newPosition)
+{
+	if (oldPosition >= m_RLayers.size())
+		return false;
+	RasterLayer* layer = m_RLayers[oldPosition];
+	m_RLayers.erase(m_RLayers.begin() + oldPosition);
+	if (newPosition < 0) {
+		m_RLayers.push_back(layer);
+		return true;
+	}
+	if (newPosition < oldPosition) {
+		m_RLayers.insert(m_RLayers.begin() + newPosition, layer);
+		return true;
+	}
+	if (newPosition <= m_RLayers.size()) {
+		m_RLayers.insert(m_RLayers.begin() + newPosition - 1, layer);
+		return true;
+	}
+	m_RLayers.push_back(layer);
+	return true;
+}
+
+//==============================================================================
+// Changement de systeme de reference d'une envelope
+//==============================================================================
+OGREnvelope GeoBase::ConvertEnvelop(const OGREnvelope& env, OGRSpatialReference* fromRef, OGRSpatialReference* toRef)
+{
+	OGREnvelope result;
+	OGRCoordinateTransformation* poTransfo = OGRCreateCoordinateTransformation(fromRef, toRef);
+	double X = env.MinX, Y = env.MinY;	// Bottom Left
+	poTransfo->Transform(1, &X, &Y);		
+	result.Merge(X, Y);									
+	X = env.MinX; Y = env.MaxY;					// Top Left
+	poTransfo->Transform(1, &X, &Y);		
+	result.Merge(X, Y);
+	X = env.MaxX; Y = env.MaxY;					// Top Right
+	poTransfo->Transform(1, &X, &Y);		
+	result.Merge(X, Y);
+	X = env.MaxX; Y = env.MinY;					// Bottom Right
+	poTransfo->Transform(1, &X, &Y);		
+	result.Merge(X, Y);
+	delete poTransfo;
+	return result;
 }
 
 //==============================================================================
@@ -208,12 +259,12 @@ bool GeoBase::VectorLayer::SetDataset(GDALDataset* poDataset, int id)
 //==============================================================================
 // Fixe l'enveloppe pour la recherche de feature
 //==============================================================================
-void GeoBase::VectorLayer::SetSpatialFilterRect(const OGREnvelope& env)
+void GeoBase::VectorLayer::SetSpatialFilterRect(const OGREnvelope& env, OGRSpatialReference* spatialRef)
 {
 	if (m_OGRLayer == nullptr)
 		return;
-	m_FilterRect = env;
-	m_OGRLayer->SetSpatialFilterRect(env.MinX, env.MinY, env.MaxX, env.MaxY);
+	m_FilterRect = GeoBase::ConvertEnvelop(env, spatialRef, m_OGRLayer->GetSpatialRef());
+	m_OGRLayer->SetSpatialFilterRect(m_FilterRect.MinX, m_FilterRect.MinY, m_FilterRect.MaxX, m_FilterRect.MaxY);
 	m_nIndex = 0;
 }
 

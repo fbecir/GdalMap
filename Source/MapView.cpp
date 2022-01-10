@@ -23,7 +23,7 @@ MapView::MapView() : m_MapThread("MapThread")
 
 MapView::~MapView()
 {
-	m_MapThread.stopThread(1000);
+	m_MapThread.stopThread(5000);
 }
 
 void MapView::paint (juce::Graphics& g)
@@ -41,11 +41,6 @@ void MapView::paint (juce::Graphics& g)
 		m_MapThread.Draw(g, m_DragPt.x, m_DragPt.y);
 		return;
 	}
-	if (m_MapThread.NumObjects() < 1) {
-		g.drawImageAt(m_Image, 0, 0);
-		return;
-	}
-	m_Image.clear(m_Image.getBounds());
 	m_MapThread.Draw(g);
 
 	g.setColour(juce::Colours::white);
@@ -113,7 +108,7 @@ void MapView::mouseUp(const juce::MouseEvent& event)
 		if ((!m_bZoom)&&(!m_bSelect)) {
 			m_dX0 -= m_DragPt.x * m_dScale;
 			m_dY0 += m_DragPt.y * m_dScale;
-			m_Image = createComponentSnapshot(b);
+			//m_Image = createComponentSnapshot(b);
 			RenderMap();
 		}
 	}
@@ -146,7 +141,7 @@ void MapView::mouseDoubleClick(const juce::MouseEvent& event)
 //==============================================================================
 // Lancement du thread de dessin des donnees
 //==============================================================================
-void MapView::RenderMap()
+void MapView::RenderMap(bool raster, bool vector, bool overlay)
 {
 	m_MapThread.signalThreadShouldExit();
 	if (m_MapThread.isThreadRunning()) {
@@ -160,6 +155,7 @@ void MapView::RenderMap()
 	m_MapThread.SetEnvelope(m_dX0, m_dY0, m_dX0 + b.getWidth() * m_dScale, m_dY0 - b.getHeight() * m_dScale);
 	m_MapThread.SetBase(m_Base);
 	m_MapThread.SetTransform(m_dX0, m_dY0, m_dScale);
+	m_MapThread.SetUpdate(raster, vector, overlay);
 
 	m_MapThread.startThread();
 }
@@ -220,6 +216,20 @@ void MapView::Ground2Pixel(double& X, double& Y)
 }
 
 //==============================================================================
+// Fixe l'envelope totale de la vue
+//==============================================================================
+void MapView::SetFrame(OGREnvelope env)
+{ 
+	auto b = getLocalBounds();
+	double X = b.getCentreX(), Y = b.getCentreY();
+	Pixel2Ground(X, Y);
+	m_Frame = env;
+	m_dX0 = env.MinX;
+	m_dY0 = env.MaxY;
+	CenterView(X, Y);
+}
+
+//==============================================================================
 // Selection des vecteurs se trouvant proche du point P (coordoonees pixel)
 //==============================================================================
 void MapView::SelectFeatures(juce::Point<int> P)
@@ -233,7 +243,7 @@ void MapView::SelectFeatures(juce::Point<int> P)
 	X = P.x + 1; Y = P.y + 1;
 	Pixel2Ground(X, Y);
 	env.Merge(X, Y);
-	m_Base->SelectFeatures(env);
+	m_Base->SelectFeatures(env, m_MapThread.SpatialRef());
 	sendActionMessage("UpdateSelectFeatures");
 }
 
@@ -245,6 +255,6 @@ void MapView::SelectFeatures(const double& X0, const double& Y0, const double& X
 	OGREnvelope env;
 	env.Merge(X0, Y0);
 	env.Merge(X1, Y1);
-	m_Base->SelectFeatures(env);
+	m_Base->SelectFeatures(env, m_MapThread.SpatialRef());
 	sendActionMessage("UpdateSelectFeatures");
 }

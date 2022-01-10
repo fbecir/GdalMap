@@ -232,6 +232,9 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\Source\RasterLayerViewer.cpp">
+      <Filter>GdalMap\Source</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\Source\FeatureViewer.cpp">
       <Filter>GdalMap\Source</Filter>
     </ClCompile>
@@ -1581,6 +1584,9 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\Source\RasterLayerViewer.h">
+      <Filter>GdalMap\Source</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\FeatureViewer.h">
       <Filter>GdalMap\Source</Filter>
     </ClInclude>

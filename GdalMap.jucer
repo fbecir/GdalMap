@@ -6,6 +6,10 @@
               companyName="IGN">
   <MAINGROUP id="FpGinB" name="GdalMap">
     <GROUP id="{AD36F250-69FA-EB93-96A6-624AD0FAFCCF}" name="Source">
+      <FILE id="o1ycmm" name="RasterLayerViewer.cpp" compile="1" resource="0"
+            file="Source/RasterLayerViewer.cpp"/>
+      <FILE id="TmE96i" name="RasterLayerViewer.h" compile="0" resource="0"
+            file="Source/RasterLayerViewer.h"/>
       <FILE id="aR8wrx" name="FeatureViewer.cpp" compile="1" resource="0"
             file="Source/FeatureViewer.cpp"/>
       <FILE id="jPi8xH" name="FeatureViewer.h" compile="0" resource="0" file="Source/FeatureViewer.h"/>

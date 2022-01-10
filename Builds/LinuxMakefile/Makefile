@@ -68,6 +68,7 @@ ifeq ($(CONFIG),Release)
 endif
 
 OBJECTS_APP := \
+  $(JUCE_OBJDIR)/RasterLayerViewer_249c0b67.o \
   $(JUCE_OBJDIR)/FeatureViewer_333dd409.o \
   $(JUCE_OBJDIR)/GeoBase_343e9923.o \
   $(JUCE_OBJDIR)/LayerViewer_d42b73a4.o \
@@ -96,6 +97,11 @@ $(JUCE_OUTDIR)/$(JUCE_TARGET_APP) : $(OBJECTS_APP) $(RESOURCES)
 	-$(V_AT)mkdir -p $(JUCE_LIBDIR)
 	-$(V_AT)mkdir -p $(JUCE_OUTDIR)
 	$(V_AT)$(CXX) -o $(JUCE_OUTDIR)/$(JUCE_TARGET_APP) $(OBJECTS_APP) $(JUCE_LDFLAGS) $(JUCE_LDFLAGS_APP) $(RESOURCES) $(TARGET_ARCH)
+
+$(JUCE_OBJDIR)/RasterLayerViewer_249c0b67.o: ../../Source/RasterLayerViewer.cpp
+	-$(V_AT)mkdir -p $(JUCE_OBJDIR)
+	@echo "Compiling RasterLayerViewer.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/FeatureViewer_333dd409.o: ../../Source/FeatureViewer.cpp
 	-$(V_AT)mkdir -p $(JUCE_OBJDIR)

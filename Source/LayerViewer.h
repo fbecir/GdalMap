@@ -58,17 +58,9 @@ public:
 	// Drag&Drop
 	void itemDropped(const SourceDetails& details) override;
 	bool isInterestedInDragSource(const SourceDetails& details) override;
-	void itemDragEnter(const SourceDetails& /*dragSourceDetails*/) override
-	{
-	}
-
-	void itemDragMove(const SourceDetails& /*dragSourceDetails*/) override
-	{
-	}
-
-	void itemDragExit(const SourceDetails& /*dragSourceDetails*/) override
-	{
-	}
+	void itemDragEnter(const SourceDetails&) override { ; }
+	void itemDragMove(const SourceDetails&) override { ; }
+	void itemDragExit(const SourceDetails&) override { ; }
 
 private:
 	GeoBase*						m_Base;

@@ -17,7 +17,7 @@ static const unsigned char temp_binary_data_0[] =
 "\"Add vector data\" = \"Ajouter des donn\xc3\xa9""es vectorielles\"\r\n"
 "\"Add raster data\" = \"Ajouter des images\"\r\n"
 "\"Quit\" = \"Quitter\"\r\n"
-"\"About GDAL\" = \"A propos de GDAL\"\r\n"
+"\"About GdalMap\" = \"A propos de GdalMap\"\r\n"
 "\"Selection\" = \"S\xc3\xa9lection\"\r\n"
 "\"File\" = \"Fichier\"\r\n"
 "\"Edit\" = \"Edition\"\r\n"
@@ -39,7 +39,7 @@ const char* getNamedResource (const char* resourceNameUTF8, int& numBytes)
 
     switch (hash)
     {
-        case 0x6c6745eb:  numBytes = 365; return Translation_fr_txt;
+        case 0x6c6745eb:  numBytes = 371; return Translation_fr_txt;
         default: break;
     }
 

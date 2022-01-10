@@ -24,7 +24,7 @@ public:
   MapView();
   ~MapView() override;
   
-  void SetFrame(OGREnvelope env) { m_Frame = env; m_dX0 = env.MinX; m_dY0 = env.MaxY; }
+  void SetFrame(OGREnvelope env);
   void ZoomWorld();
   void ZoomEnvelope(const OGREnvelope& env, double buffer = 0.);
   void CenterView(const double& X, const double& Y);
@@ -32,7 +32,7 @@ public:
   void Ground2Pixel(double& X, double& Y);
   void SetBase(GeoBase* base) { m_MapThread.stopThread(-1); m_Base = base; }
   void StopThread() { m_MapThread.stopThread(-1); m_Image.clear(m_Image.getBounds()); RenderMap(); }
-  void RenderMap();
+  void RenderMap(bool raster = true, bool vector = true, bool overlay = true);
   void SelectFeatures(juce::Point<int>);
   void SelectFeatures(const double& X0, const double& Y0, const double& X1, const double& Y1);
 

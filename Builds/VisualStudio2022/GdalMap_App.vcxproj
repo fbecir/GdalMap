@@ -151,6 +151,7 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\Source\RasterLayerViewer.cpp"/>
     <ClCompile Include="..\..\Source\FeatureViewer.cpp"/>
     <ClCompile Include="..\..\Source\GeoBase.cpp"/>
     <ClCompile Include="..\..\Source\LayerViewer.cpp"/>
@@ -1382,6 +1383,7 @@
     <ClCompile Include="..\..\JuceLibraryCode\include_juce_gui_extra.cpp"/>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\Source\RasterLayerViewer.h"/>
     <ClInclude Include="..\..\Source\FeatureViewer.h"/>
     <ClInclude Include="..\..\Source\GeoBase.h"/>
     <ClInclude Include="..\..\Source\LayerViewer.h"/>

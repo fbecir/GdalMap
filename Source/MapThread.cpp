@@ -17,6 +17,8 @@ MapThread::MapThread(const juce::String& threadName, size_t threadStackSize) : j
 	m_nNumObjects = 0;
 	m_dX0 = m_dY0 = 0.;
 	m_dScale = 1.0;
+	m_bRaster = m_bVector = m_bOverlay = true;
+	m_SpatialRef.importFromEPSG(3857);
 }
 
 MapThread::~MapThread()
@@ -27,6 +29,7 @@ MapThread::~MapThread()
 
 bool MapThread::AllocPoints(int numPt)
 {
+	m_Path.preallocateSpace(3 * numPt + 1);
 	if (numPt < m_nPtAlloc)
 		return true;
 	if (m_Pt != nullptr)
@@ -40,7 +43,24 @@ bool MapThread::AllocPoints(int numPt)
 
 void MapThread::SetDimension(int w, int h)
 {
-	m_Image = juce::Image(juce::Image::PixelFormat::ARGB, w, h, true);
+	if ((w != m_Vector.getWidth()) || (h != m_Vector.getHeight())) {
+		m_Vector = juce::Image(juce::Image::PixelFormat::ARGB, w, h, true);
+		m_Raster = juce::Image(juce::Image::PixelFormat::ARGB, w, h, true);
+		m_Overlay = juce::Image(juce::Image::PixelFormat::ARGB, w, h, true);
+	}
+}
+
+void MapThread::SetUpdate(bool raster, bool vector, bool overlay)
+{
+	m_bRaster = raster;
+	m_bVector = vector;
+	m_bOverlay = overlay;
+	if (raster)
+		m_Raster.clear(m_Raster.getBounds());
+	if (vector)
+		m_Vector.clear(m_Vector.getBounds());
+	if (overlay)
+		m_Overlay.clear(m_Overlay.getBounds());
 }
 
 void MapThread::SetEnvelope(const double& x0, const double& y0, const double& x1, const double& y1)
@@ -56,54 +76,73 @@ void MapThread::run()
 	if (m_Base == nullptr)
 		return;
 	// Affichage des couches raster
-	for (int i = 0; i < m_Base->GetRasterLayerCount(); i++) {
-		GeoBase::RasterLayer* poLayer = m_Base->GetRasterLayer(i);
-		if (poLayer == nullptr)
-			continue;
-		DrawLayer(poLayer);
+	if (m_bRaster) {
+		for (int i = 0; i < m_Base->GetRasterLayerCount(); i++) {
+			GeoBase::RasterLayer* poLayer = m_Base->GetRasterLayer(i);
+			if (poLayer == nullptr)
+				continue;
+			DrawLayer(poLayer);
+		}
 	}
 	// Affichage des couches vectorielles
-	for (int i = 0; i < m_Base->GetVectorLayerCount(); i++) {
-		GeoBase::VectorLayer* poLayer = m_Base->GetVectorLayer(i);
-		if (poLayer == nullptr)
-			continue;
-		poLayer->SetSpatialFilterRect(m_Env);
-		DrawLayer(poLayer);
+	if (m_bVector) {
+		for (int i = 0; i < m_Base->GetVectorLayerCount(); i++) {
+			GeoBase::VectorLayer* poLayer = m_Base->GetVectorLayer(i);
+			if (poLayer == nullptr)
+				continue;
+			poLayer->SetSpatialFilterRect(m_Env, &m_SpatialRef);
+			DrawLayer(poLayer);
+		}
 	}
+	// Affichage de la selection
+	if (m_bOverlay)
+		DrawSelection();
 }
 
 void MapThread::Draw(juce::Graphics& g, int x0, int y0)
 {
-	g.drawImageAt(m_Image, x0, y0);
+	//g.setOpacity(1.f);
+	g.drawImageAt(m_Raster, x0, y0);
+	g.drawImageAt(m_Vector, x0, y0);
+	g.drawImageAt(m_Overlay, x0, y0);
 }
 
+//==============================================================================
+// Dessin des layers vectoriels
+//==============================================================================
 void MapThread::DrawLayer(GeoBase::VectorLayer* poLayer)
 {
 	poLayer->ResetReading();
 	OGREnvelope env;
+	OGRCoordinateTransformation* poTransfo = OGRCreateCoordinateTransformation(poLayer->SpatialRef(), &m_SpatialRef);
+	if (poTransfo == nullptr)
+		return;
 	do {
 		const juce::MessageManagerLock mml(Thread::getCurrentThread());
 		if (!mml.lockWasGained())  // if something is trying to kill this job, the lock
 			return;
-		juce::Graphics g(m_Image);
+		juce::Graphics g(m_Vector);
 
 		for (int i = 0; i < 100; i++) {
 			if (threadShouldExit())
 				return;
 			OGRFeature* poFeature = poLayer->GetNextFeature();
-			if (poFeature == nullptr)
+			if (poFeature == nullptr) {
+				delete poTransfo;
 				return;
+			}
 
 			m_Path.clear();
 			m_bFill = false;
 			g.setColour(juce::Colour(poLayer->m_Repres.PenColor));
-			const OGRGeometry* poGeom = poFeature->GetGeometryRef();
+			OGRGeometry* poGeom = poFeature->GetGeometryRef();
+			poGeom->transform(poTransfo);
 			poGeom->getEnvelope(&env);
 			if ((fabs(env.MaxX - env.MinX)/m_dScale < 2) && (fabs(env.MaxX - env.MinX)/m_dScale < 2) && (poGeom->getDimension() > 0)) {
 				g.drawLine((env.MinX-m_dX0)/m_dScale, (m_dY0-env.MinY)/m_dScale, (env.MaxX-m_dX0)/m_dScale, (m_dY0-env.MaxY)/m_dScale, 3.);
 			}
 			else {
-				DrawGeometry(g, poGeom);
+				DrawGeometry(poGeom);
 				g.strokePath(m_Path, juce::PathStrokeType(poLayer->m_Repres.PenSize));
 				if (m_bFill) {
 					g.setFillType(juce::FillType(juce::Colour(poLayer->m_Repres.FillColor)));
@@ -115,9 +154,13 @@ void MapThread::DrawLayer(GeoBase::VectorLayer* poLayer)
 			m_nNumObjects++;
 		}
 	} while (!threadShouldExit());
+	delete poTransfo;
 }
 
-void MapThread::DrawGeometry(juce::Graphics& g, const OGRGeometry* poGeom)
+//==============================================================================
+// Dessin des geometries OGR
+//==============================================================================
+void MapThread::DrawGeometry(const OGRGeometry* poGeom)
 {
 	if (wkbFlatten(poGeom->getGeometryType()) == wkbPoint)
 		return DrawPoint(poGeom);
@@ -183,7 +226,7 @@ void MapThread::DrawLineString(const OGRGeometry* poGeom)
 void MapThread::DrawCurve(const OGRCurve* poCurve)
 {
 	if (wkbFlatten(poCurve->getGeometryType()) == wkbLineString)
-		DrawLineString(poCurve);
+		return DrawLineString(poCurve);
 	if (strcmp(poCurve->getGeometryName(), "LINEARRING") == 0) {
 		const OGRLinearRing* poRing = poCurve->toLinearRing();
 		return DrawLinearRing(poRing);
@@ -221,19 +264,71 @@ void MapThread::DrawMultiPoint(const OGRGeometry* poGeom)
 		DrawPoint(poMPoint->getGeometryRef(i));
 }
 
+//==============================================================================
+// Dessin de la selection
+//==============================================================================
+void MapThread::DrawSelection()
+{
+	const juce::MessageManagerLock mml(Thread::getCurrentThread());
+	if (!mml.lockWasGained())
+		return;
+	juce::Graphics g(m_Overlay);
+	g.setColour(juce::Colours::black);
+	OGREnvelope env;
+	for (size_t i = 0; i < m_Base->GetSelectionCount(); i++) {
+		m_Path.clear();
+		GeoBase::Feature feature = m_Base->GetSelection(i);
+		OGRLayer* poLayer = m_Base->GetOGRLayer(feature.IdLayer());
+		if (poLayer == nullptr)
+			continue;
+		OGRFeature* poFeature = poLayer->GetFeature(feature.Id());
+		if (poFeature == nullptr)
+			continue;	
+		OGRCoordinateTransformation* poTransfo = OGRCreateCoordinateTransformation(poLayer->GetSpatialRef(), &m_SpatialRef);
+		if (poTransfo == nullptr) {
+			OGRFeature::DestroyFeature(poFeature);
+			continue;
+		}
+		OGRGeometry* poGeom = poFeature->GetGeometryRef();
+		poGeom->transform(poTransfo);
+		poGeom->getEnvelope(&env);
+		if (m_Env.Intersects(env)) {
+			DrawGeometry(poGeom);
+			juce::Path::Iterator iter(m_Path);
+			int numPoint = 0;
+			bool needText = true;
+			if ((fabs(env.MaxX - env.MinX) / m_dScale < 100) && (fabs(env.MaxX - env.MinX) / m_dScale < 100) && (poGeom->getDimension() > 0))
+				needText = false;
+			while (iter.next()) {
+				g.drawRect(iter.x1 - 2, iter.y1 - 2, 4.f, 4.f);
+				if (needText)
+					g.drawSingleLineText(juce::String(numPoint), iter.x1 + 5, iter.y1);
+				numPoint++;
+			}
+		}
+		delete poTransfo;
+		OGRFeature::DestroyFeature(poFeature);
+		if (threadShouldExit())
+			return;
+	}
+}
+
+//==============================================================================
+// Dessin des datasets raster
+//==============================================================================
 void MapThread::DrawLayer(GeoBase::RasterLayer* layer)
 {
 	if (!m_Env.Intersects(layer->Envelope()))
 		return ;
 	for (int i = 0; i < layer->GetRasterCount(); i++) {
 		if (m_Env.Intersects(layer->GetRasterEnvelope(i)))
-			DrawRaster(layer->GetRasterDataset(i));
+			DrawRaster(layer->GetRasterDataset(i), layer->Opacity());
 		if (threadShouldExit())
 			return;
 	}
 }
 
-void MapThread::DrawRaster(GDALDataset* poDataset)
+void MapThread::DrawRaster(GDALDataset* poDataset, float opacity)
 {
 	if (poDataset == nullptr)
 		return;
@@ -258,7 +353,7 @@ void MapThread::DrawRaster(GDALDataset* poDataset)
 	if (U1 > W) U1 = W;
 	if (V1 > H) V1 = H;
 	// Zone pixel dans le bitmap resultat
-	double gsdR = (m_Env.MaxX - m_Env.MinX) / m_Image.getWidth();
+	double gsdR = (m_Env.MaxX - m_Env.MinX) / m_Raster.getWidth();
 	int R0 = (int)round(((U0 * gsd + X0) - m_Env.MinX) / gsdR);
 	int S0 = (int)round((m_Env.MaxY - (Y0 - V0 * gsd)) / gsdR);
 	int R1 = (int)round(((U1 * gsd + X0) - m_Env.MinX) / gsdR);
@@ -278,7 +373,8 @@ void MapThread::DrawRaster(GDALDataset* poDataset)
 		if (error == CE_Failure)
 			return ;
 	}
-	juce::Graphics g(m_Image);
+	juce::Graphics g(m_Raster);
+	g.setOpacity(opacity);
 	g.drawImageAt(tmpImage, R0, S0);
 	m_nNumObjects++;
 }

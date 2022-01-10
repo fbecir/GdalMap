@@ -10,14 +10,13 @@
 #define JUCE_MODAL_LOOPS_PERMITTED 1
 
 #include <JuceHeader.h>
-#include "ogrsf_frmts.h"
 #include "MapView.h"
 #include "GeoBase.h"
 #include "LayerViewer.h"
 #include "SelectionViewer.h"
 #include "FeatureViewer.h"
+#include "RasterLayerViewer.h"
 
-class GDALDataset;
 
 //==============================================================================
 /*
@@ -74,6 +73,7 @@ private:
   juce::ApplicationCommandManager m_CommandManager;
   std::unique_ptr<juce::MenuBarComponent> m_MenuBar;
   std::unique_ptr<LayerViewer> m_LayerViewer;
+  std::unique_ptr<RasterLayerViewer> m_RasterLayerViewer;
   std::unique_ptr<SelectionViewer> m_SelectionViewer;
   std::unique_ptr<FeatureViewer> m_FeatureViewer;
   std::unique_ptr<MapView> m_MapView;
@@ -92,7 +92,7 @@ private:
   void SaveAppOption(juce::String name, juce::String value);
 
   void Clear();
-  void AboutGdal();
+  void AboutGdalMap();
 
   void OpenVector();
 

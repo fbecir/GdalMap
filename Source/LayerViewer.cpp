@@ -170,6 +170,7 @@ void LayerViewerModel::sliderValueChanged(juce::Slider* slider)
 //==============================================================================
 LayerViewer::LayerViewer()
 {
+	m_Base = nullptr;
 	setName("Layers");
 	m_Model.addActionListener(this);
 	// Bordure
