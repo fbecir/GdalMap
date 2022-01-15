@@ -6,6 +6,7 @@
               companyName="IGN">
   <MAINGROUP id="FpGinB" name="GdalMap">
     <GROUP id="{AD36F250-69FA-EB93-96A6-624AD0FAFCCF}" name="Source">
+      <FILE id="LwmOzo" name="Utilities.h" compile="0" resource="0" file="Source/Utilities.h"/>
       <FILE id="o1ycmm" name="RasterLayerViewer.cpp" compile="1" resource="0"
             file="Source/RasterLayerViewer.cpp"/>
       <FILE id="TmE96i" name="RasterLayerViewer.h" compile="0" resource="0"
@@ -50,12 +51,12 @@
       </MODULEPATHS>
     </LINUX_MAKE>
     <VS2022 targetFolder="Builds/VisualStudio2022" externalLibraries="gdal_i.lib"
-            userNotes="Environment :&#10;PATH=D:\Anaconda3\Library\bin;%PATH%&#10;PROJ_LIB=D:\Anaconda3\Library\share\proj">
+            userNotes="Environment :&#10;PATH=D:\Anaconda3\envs\gdal\Library\bin;%PATH%&#10;PROJ_LIB=D:\Anaconda3\envs\gdal\Library\share\proj">
       <CONFIGURATIONS>
-        <CONFIGURATION isDebug="1" name="Debug" targetName="GdalMap" headerPath="D:\Anaconda3\Library\include;"
-                       libraryPath="D:\Anaconda3\Library\lib\"/>
-        <CONFIGURATION isDebug="0" name="Release" targetName="GdalMap" headerPath="D:\Anaconda3\Library\include;"
-                       libraryPath="D:\Anaconda3\Library\lib\"/>
+        <CONFIGURATION isDebug="1" name="Debug" targetName="GdalMap" headerPath="D:\Anaconda3\envs\gdal\Library\include;"
+                       libraryPath="D:\Anaconda3\envs\gdal\Library\lib;" postbuildCommand="MKDIR .\x64\Debug\App\Images&#10;COPY ..\..\Images\*.* .\x64\Debug\App\Images"/>
+        <CONFIGURATION isDebug="0" name="Release" targetName="GdalMap" headerPath="D:\Anaconda3\envs\gdal\Library\include;"
+                       libraryPath="D:\Anaconda3\envs\gdal\Library\lib;" postbuildCommand="MKDIR .\x64\Release\App\Images&#10;COPY ..\..\Images\*.* .\x64\Release\App\Images"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_core" path="../../JUCE/modules"/>

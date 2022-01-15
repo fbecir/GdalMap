@@ -22,17 +22,18 @@ public:
 	void Clear();
 
 	bool OpenVectorDataset(const char* filename);
-	bool OpenRasterDataset(const char* filename, const char* name = nullptr);
+	bool OpenRasterDataset(const char* filename, const char* name = nullptr, bool visible = true, char** options = nullptr);
+	bool OpenRasterMultiDataset(const char* filename);
 	size_t SelectFeatures(const OGREnvelope& env, OGRSpatialReference* spatialRef);
 	bool SelectFeatureFields(int layerId, GIntBig featureId);
 
 	OGRSpatialReference* SpatialRef() { return &m_SpatialRef; }
-	int GetVectorLayerCount() { return m_VLayers.size(); }
+	int GetVectorLayerCount() { return (int)m_VLayers.size(); }
 	VectorLayer* GetVectorLayer(int i) { if (i < m_VLayers.size()) return m_VLayers[i]; return nullptr; }
 	bool ReorderVectorLayer(int oldPosition, int newPosition);
 	bool ReorderRasterLayer(int oldPosition, int newPosition);
 	OGRLayer* GetOGRLayer(int i) { if (i < m_VLayers.size()) return m_VLayers[i]->GetOGRLayer(); return nullptr; }
-	int GetRasterLayerCount() { return m_RLayers.size(); }
+	int GetRasterLayerCount() { return (int)m_RLayers.size(); }
 	RasterLayer* GetRasterLayer(int i) { if (i < m_RLayers.size()) return m_RLayers[i]; return nullptr; }
 
 	OGREnvelope GetEnvelope() { return m_Env; }
@@ -48,6 +49,7 @@ public:
 		GUInt32			PenColor;
 		GUInt32			FillColor;
 		float				PenSize;
+		bool				Visible;
 	} Repres;
 
 	class Feature {
@@ -106,7 +108,7 @@ public:
 		std::string							m_Name;
 		float										m_Opacity;
 	public:
-		RasterLayer() { m_Name = "RASTER"; m_Opacity = 1.f; }
+		RasterLayer() { m_Name = "RASTER"; m_Opacity = 1.f; Visible = true; }
 		OGREnvelope Envelope() { return m_TotalEnv; }
 		std::string Name() { return m_Name; }
 		void Name(const char* name) { m_Name = name; }
@@ -116,6 +118,8 @@ public:
 		int GetRasterCount() { return m_Raster.size(); }
 		GDALDataset* GetRasterDataset(int i) { if (i < m_Raster.size()) return m_Raster[i].Dataset(); return nullptr; }
 		OGREnvelope GetRasterEnvelope(int i) { if (i < m_Raster.size()) return m_Raster[i].Envelope(); return OGREnvelope(); }
+
+		bool				Visible;
 	};
 
 protected:

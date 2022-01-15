@@ -30,11 +30,13 @@ public:
   void CenterView(const double& X, const double& Y);
   void Pixel2Ground(double& X, double& Y);
   void Ground2Pixel(double& X, double& Y);
-  void SetBase(GeoBase* base) { m_MapThread.stopThread(-1); m_Base = base; }
+  void SetBase(GeoBase* base) { m_MapThread.stopThread(-1); m_Base = base; resized(); }
   void StopThread() { m_MapThread.stopThread(-1); m_Image.clear(m_Image.getBounds()); RenderMap(); }
   void RenderMap(bool raster = true, bool vector = true, bool overlay = true);
   void SelectFeatures(juce::Point<int>);
   void SelectFeatures(const double& X0, const double& Y0, const double& X1, const double& Y1);
+  void DrawDecoration(juce::Graphics&, int deltaX = 0, int deltaY = 0);
+  double ComputeCartoScale(double cartoscale = 0.);
 
   void paint (juce::Graphics&) override;
   void resized() override;

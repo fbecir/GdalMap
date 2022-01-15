@@ -1584,6 +1584,9 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\Source\Utilities.h">
+      <Filter>GdalMap\Source</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\RasterLayerViewer.h">
       <Filter>GdalMap\Source</Filter>
     </ClInclude>

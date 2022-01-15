@@ -9,7 +9,7 @@
 namespace BinaryData
 {
     extern const char*   Translation_fr_txt;
-    const int            Translation_fr_txtSize = 371;
+    const int            Translation_fr_txtSize = 425;
 
     // Number of elements in the namedResourceList and originalFileNames arrays.
     const int namedResourceListSize = 1;

@@ -18,7 +18,7 @@ class LayerViewerModel :	public juce::TableListBoxModel,
 													public juce::Slider::Listener,
 													public juce::ActionBroadcaster {
 public:
-	typedef enum { Name = 1, PenWidth = 2, PenColour = 3, FillColour = 4 } Column;
+	typedef enum { Visibility = 1, Name = 2, PenWidth = 3, PenColour = 4, FillColour = 5 } Column;
 	LayerViewerModel();
 
 	int getNumRows() override;

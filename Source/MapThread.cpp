@@ -17,7 +17,7 @@ MapThread::MapThread(const juce::String& threadName, size_t threadStackSize) : j
 	m_nNumObjects = 0;
 	m_dX0 = m_dY0 = 0.;
 	m_dScale = 1.0;
-	m_bRaster = m_bVector = m_bOverlay = true;
+	m_bRaster = m_bVector = m_bOverlay = m_bRasterDone = false;
 	m_SpatialRef.importFromEPSG(3857);
 }
 
@@ -45,8 +45,9 @@ void MapThread::SetDimension(int w, int h)
 {
 	if ((w != m_Vector.getWidth()) || (h != m_Vector.getHeight())) {
 		m_Vector = juce::Image(juce::Image::PixelFormat::ARGB, w, h, true);
-		m_Raster = juce::Image(juce::Image::PixelFormat::ARGB, w, h, true);
+		m_Raster = juce::Image(juce::Image::PixelFormat::RGB, w, h, true);
 		m_Overlay = juce::Image(juce::Image::PixelFormat::ARGB, w, h, true);
+		m_bRasterDone = false;
 	}
 }
 
@@ -55,8 +56,10 @@ void MapThread::SetUpdate(bool raster, bool vector, bool overlay)
 	m_bRaster = raster;
 	m_bVector = vector;
 	m_bOverlay = overlay;
-	if (raster)
+	if (raster) {
 		m_Raster.clear(m_Raster.getBounds());
+		m_bRasterDone = false;
+	}
 	if (vector)
 		m_Vector.clear(m_Vector.getBounds());
 	if (overlay)
@@ -77,18 +80,25 @@ void MapThread::run()
 		return;
 	// Affichage des couches raster
 	if (m_bRaster) {
+		m_bRasterDone = false;
 		for (int i = 0; i < m_Base->GetRasterLayerCount(); i++) {
 			GeoBase::RasterLayer* poLayer = m_Base->GetRasterLayer(i);
 			if (poLayer == nullptr)
 				continue;
+			if (!poLayer->Visible)
+				continue;
 			DrawLayer(poLayer);
 		}
 	}
+	m_bRasterDone = true;
 	// Affichage des couches vectorielles
 	if (m_bVector) {
+		m_Vector.clear(m_Vector.getBounds());
 		for (int i = 0; i < m_Base->GetVectorLayerCount(); i++) {
 			GeoBase::VectorLayer* poLayer = m_Base->GetVectorLayer(i);
 			if (poLayer == nullptr)
+				continue;
+			if (!poLayer->m_Repres.Visible)
 				continue;
 			poLayer->SetSpatialFilterRect(m_Env, &m_SpatialRef);
 			DrawLayer(poLayer);
@@ -97,14 +107,18 @@ void MapThread::run()
 	// Affichage de la selection
 	if (m_bOverlay)
 		DrawSelection();
+	m_bRaster = m_bVector = m_bOverlay = false;
 }
 
-void MapThread::Draw(juce::Graphics& g, int x0, int y0)
+bool MapThread::Draw(juce::Graphics& g, int x0, int y0)
 {
-	//g.setOpacity(1.f);
+	if (!m_bRasterDone)
+		return false;
+	g.setOpacity(1.f);
 	g.drawImageAt(m_Raster, x0, y0);
 	g.drawImageAt(m_Vector, x0, y0);
 	g.drawImageAt(m_Overlay, x0, y0);
+	return true;
 }
 
 //==============================================================================
@@ -143,7 +157,7 @@ void MapThread::DrawLayer(GeoBase::VectorLayer* poLayer)
 			}
 			else {
 				DrawGeometry(poGeom);
-				g.strokePath(m_Path, juce::PathStrokeType(poLayer->m_Repres.PenSize));
+				g.strokePath(m_Path, juce::PathStrokeType(poLayer->m_Repres.PenSize, juce::PathStrokeType::beveled));
 				if (m_bFill) {
 					g.setFillType(juce::FillType(juce::Colour(poLayer->m_Repres.FillColor)));
 					g.fillPath(m_Path);
@@ -358,6 +372,8 @@ void MapThread::DrawRaster(GDALDataset* poDataset, float opacity)
 	int S0 = (int)round((m_Env.MaxY - (Y0 - V0 * gsd)) / gsdR);
 	int R1 = (int)round(((U1 * gsd + X0) - m_Env.MinX) / gsdR);
 	int S1 = (int)round((m_Env.MaxY - (Y0 - V1 * gsd)) / gsdR);
+	if ( ((R1 - R0) <= 0) || ((S1 - S0) <= 0) )
+		return;
 	//
 	juce::Image::PixelFormat format = juce::Image::PixelFormat::RGB;
 	if (nbBand == 1)

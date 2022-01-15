@@ -14,3 +14,4 @@ countries: fr be mc ch lu
 "Brush" = "Pinceau"
 "Width" = "Epaisseur"
 "Opacity" = "Opacité"
+"Visibility" = "Visibilité"

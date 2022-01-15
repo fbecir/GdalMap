@@ -42,7 +42,7 @@ public:
     menuAddRasterLayer,
     menuZoomTotal,
     menuTest,
-    menuShowLayerViewer,
+    menuShowSidePanel,
     menuShowSelectionViewer,
     menuShowFeatureViewer,
     gdalAbout

@@ -8,7 +8,7 @@
 #include "GeoBase.h"
 #include "gdal_priv.h"
 #include "cpl_conv.h" // for CPLMalloc()
-
+#include "cpl_string.h"
 
 //==============================================================================
 // Constructeur GeoBase
@@ -68,9 +68,9 @@ bool GeoBase::OpenVectorDataset(const char* filename)
 //==============================================================================
 // Ouverture d'un dataset raster
 //==============================================================================
-bool GeoBase::OpenRasterDataset(const char* filename, const char* name)
+bool GeoBase::OpenRasterDataset(const char* filename, const char* name, bool visible, char** options)
 {
-	GDALDataset* poDataset = GDALDataset::Open(filename, GDAL_OF_RASTER | GDAL_OF_READONLY);
+	GDALDataset* poDataset = GDALDataset::Open(filename, GDAL_OF_RASTER | GDAL_OF_READONLY, nullptr, options);
 	if (poDataset == NULL)
 		return false;
 
@@ -78,6 +78,7 @@ bool GeoBase::OpenRasterDataset(const char* filename, const char* name)
 	if (layer->AddDataset(poDataset)) {
 		if (name != nullptr)
 			layer->Name(name);
+		layer->Visible = visible;
 		m_RLayers.push_back(layer);
 		m_Dataset.push_back(poDataset);
 		m_Env.Merge(layer->Envelope());
@@ -86,6 +87,42 @@ bool GeoBase::OpenRasterDataset(const char* filename, const char* name)
 	delete layer;
 	poDataset->Release();
 	return false;
+}
+
+//==============================================================================
+// Ouverture d'un multi-dataset raster (WMTS par exemple)
+//==============================================================================
+bool GeoBase::OpenRasterMultiDataset(const char* filename)
+{
+	GDALDataset* poDataset = GDALDataset::Open(filename, GDAL_OF_RASTER | GDAL_OF_READONLY);
+	if (poDataset == NULL)
+		return false;
+
+	char** papszSubdatasets = poDataset->GetMetadata("SUBDATASETS");
+	// The returned string list is owned by the object, and may change at any time
+
+	CPLStringList options;
+	options.AddNameValue("EXTENDBEYONDDATELINE", "YES");
+	options.AddNameValue("EXTENT_METHOD", "MOST_PRECISE_TILE_MATRIX");
+	options.AddNameValue("ZOOM_LEVEL", "19");
+
+	for (int i = 0; i < CSLCount(papszSubdatasets); i++) {
+		char szKeyName[1024];
+		char* pszSubdatasetName;
+		char* pszSubdatasetDesc;
+		snprintf(szKeyName, sizeof(szKeyName),"SUBDATASET_%d_NAME", i+1);
+		szKeyName[sizeof(szKeyName) - 1] = '\0';
+		pszSubdatasetName = CPLStrdup(CSLFetchNameValue(papszSubdatasets, szKeyName));
+		snprintf(szKeyName, sizeof(szKeyName), "SUBDATASET_%d_DESC", i+1);
+		szKeyName[sizeof(szKeyName) - 1] = '\0';
+		pszSubdatasetDesc = CPLStrdup(CSLFetchNameValue(papszSubdatasets, szKeyName));
+		if (strlen(pszSubdatasetName) > 0)
+			OpenRasterDataset(pszSubdatasetName, pszSubdatasetDesc, false, options.List());
+		CPLFree(pszSubdatasetName);
+		CPLFree(pszSubdatasetDesc);
+	}
+	poDataset->Release();
+	return true;
 }
 
 //==============================================================================
@@ -221,6 +258,7 @@ GeoBase::VectorLayer::VectorLayer()
 	m_Repres.PenColor = 0xCC008800;
 	m_Repres.FillColor = 0x55770000;
 	m_Repres.PenSize = 4.;
+	m_Repres.Visible = true;
 }
 
 //==============================================================================

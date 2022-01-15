@@ -52,7 +52,7 @@ MainComponent::MainComponent()
 	// set up the layout and resizer bars..
 	m_VerticalLayout.setItemLayout(0, -0.2, -1.0, -0.65); 
 	m_VerticalLayout.setItemLayout(1, 8, 8, 8);           // the vertical divider drag-bar thing is always 8 pixels wide
-	m_VerticalLayout.setItemLayout(2, -0.35, -0.6, -0.35);  
+	m_VerticalLayout.setItemLayout(2, 0, -0.6, -0.35);  
 	
 	m_VerticalDividerBar.reset(new juce::StretchableLayoutResizerBar(&m_VerticalLayout, 1, true));
 	addAndMakeVisible(m_VerticalDividerBar.get());
@@ -133,7 +133,7 @@ juce::PopupMenu MainComponent::getMenuForIndex(int menuIndex, const juce::String
 	}
 	else if (menuIndex == 3)
 	{
-		menu.addCommandItem(&m_CommandManager, CommandIDs::menuShowLayerViewer);
+		menu.addCommandItem(&m_CommandManager, CommandIDs::menuShowSidePanel);
 		menu.addCommandItem(&m_CommandManager, CommandIDs::menuShowSelectionViewer);
 		menu.addCommandItem(&m_CommandManager, CommandIDs::menuShowFeatureViewer);
 	}
@@ -162,7 +162,7 @@ void MainComponent::getAllCommands(juce::Array<juce::CommandID>& c)
 {
 	juce::Array<juce::CommandID> commands{ CommandIDs::menuNew, CommandIDs::menuOpenImage, CommandIDs::menuOpenVector, CommandIDs::menuOpenFolder,
 		CommandIDs::menuQuit, CommandIDs::menuUndo, CommandIDs::menuAddVectorLayer, CommandIDs::menuAddRasterLayer, CommandIDs::menuZoomTotal,
-		CommandIDs::menuTest, CommandIDs::menuShowLayerViewer, CommandIDs::menuShowSelectionViewer, 
+		CommandIDs::menuTest, CommandIDs::menuShowSidePanel, CommandIDs::menuShowSelectionViewer,
 		CommandIDs::menuShowFeatureViewer, CommandIDs::gdalAbout };
 	c.addArray(commands);
 }
@@ -203,10 +203,10 @@ void MainComponent::getCommandInfo(juce::CommandID commandID, juce::ApplicationC
 	case CommandIDs::menuZoomTotal:
 		result.setInfo(juce::translate("Zoom total"), juce::translate("Zoom total"), "Menu", 0);
 		break;
-	case CommandIDs::menuShowLayerViewer:
-		result.setInfo(juce::translate("View Layer Viewer"), juce::translate("View Layer Viewer"), "Menu", 0);
-		if (m_LayerViewer.get() != nullptr)
-			result.setTicked(m_LayerViewer.get()->isVisible());
+	case CommandIDs::menuShowSidePanel:
+		result.setInfo(juce::translate("View Side Panel"), juce::translate("View Side Panel"), "Menu", 0);
+		if (m_Panel.get() != nullptr)
+			result.setTicked(m_Panel.get()->isVisible());
 		break;
 	case CommandIDs::menuShowSelectionViewer:
 		result.setInfo(juce::translate("View Selection Viewer"), juce::translate("View Selection Viewer"), "Menu", 0);
@@ -261,10 +261,20 @@ bool MainComponent::perform(const InvocationInfo& info)
 	case CommandIDs::menuZoomTotal:
 		m_MapView.get()->ZoomWorld();
 		break;
-	case CommandIDs::menuShowLayerViewer:
-		if (m_LayerViewer.get() == nullptr)
+	case CommandIDs::menuShowSidePanel:
+		if ((m_VerticalDividerBar.get() == nullptr)|| (m_Panel.get() == nullptr))
 			return false;
-		m_LayerViewer.get()->setVisible(!m_LayerViewer.get()->isVisible());
+		if (m_Panel.get()->isVisible()) {
+			m_VerticalDividerBar.get()->setVisible(false);
+			m_Panel.get()->setVisible(false);
+			m_VerticalLayout.setItemLayout(0, -1., -1., -1.);
+		}
+		else {
+			m_VerticalDividerBar.get()->setVisible(true);
+			m_Panel.get()->setVisible(true);
+			m_VerticalLayout.setItemLayout(0, -0.2, -1.0, -0.65);
+		}
+		resized();
 		break;
 	case CommandIDs::menuShowSelectionViewer:
 		if (m_SelectionViewer.get() == nullptr)
@@ -500,13 +510,17 @@ void MainComponent::Test()
 
 
 	juce::String server = "WMTS:https://maps.wien.gv.at/wmts/1.0.0/WMTSCapabilities.xml,layer=lb";
-	server = "WMTS:https://wxs.ign.fr/ortho/geoportail/wmts?EXCEPTIONS=text/xml&&SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetCapabilities,layer=ORTHOIMAGERY.ORTHOPHOTOS";
+	server = "WMTS:https://wxs.ign.fr/ortho/geoportail/wmts?EXCEPTIONS=text/xml&SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetCapabilities,layer=ORTHOIMAGERY.ORTHOPHOTOS";
 	//server = "WMTS:https://wxs.ign.fr/ortho/geoportail/wmts?EXCEPTIONS=text/xml&&SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetCapabilities,layer=PCRS.LAMB93";
 	//server = "WMTS:https://wxs.ign.fr/orthohisto/geoportail/wmts?EXCEPTIONS=text/xml&&SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetCapabilities,layer=ORTHOIMAGERY.ORTHOPHOTOS.1950-1965";
 	//server = "WMTS:https://wxs.ign.fr/orthohisto/geoportail/wmts?EXCEPTIONS=text/xml&&SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetCapabilities,layer=ORTHOIMAGERY.ORTHOPHOTOS2011-2015";
 	//server = "TMS:https://tile.openstreetmap.org/${z}/${x}/${y}.png";
 	//server = "WMS:http://a.tile.opencyclemap.org/cycle/${z}/${x}/${y}.png";
-	if (!m_Base.OpenRasterDataset(server.toStdString().c_str(), "WMTS")) {
+	//server = "WMTS:https://wxs.ign.fr/ortho/geoportail/wmts?EXCEPTIONS=text/xml&&SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetCapabilities";
+	server = "WMTS:https://wxs.ign.fr/ortho/geoportail/wmts?SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetCapabilities,layer=ORTHOIMAGERY.ORTHOPHOTOS.BDORTHO";
+	server = "WMTS:https://wxs.ign.fr/ortho/geoportail/wmts?SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetCapabilities";
+
+	if (!m_Base.OpenRasterMultiDataset(server.toStdString().c_str())) {
 		return;
 	}
 	m_Frame = m_Base.GetEnvelope();

@@ -23,7 +23,9 @@ static const unsigned char temp_binary_data_0[] =
 "\"Edit\" = \"Edition\"\r\n"
 "\"Pen\" = \"Stylo\"\r\n"
 "\"Brush\" = \"Pinceau\"\r\n"
-"\"Width\" = \"Epaisseur\"";
+"\"Width\" = \"Epaisseur\"\r\n"
+"\"Opacity\" = \"Opacit\xc3\xa9\"\r\n"
+"\"Visibility\" = \"Visibilit\xc3\xa9\"";
 
 const char* Translation_fr_txt = (const char*) temp_binary_data_0;
 
@@ -39,7 +41,7 @@ const char* getNamedResource (const char* resourceNameUTF8, int& numBytes)
 
     switch (hash)
     {
-        case 0x6c6745eb:  numBytes = 371; return Translation_fr_txt;
+        case 0x6c6745eb:  numBytes = 425; return Translation_fr_txt;
         default: break;
     }
 

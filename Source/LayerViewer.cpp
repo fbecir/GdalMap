@@ -6,6 +6,7 @@
 //==============================================================================
 
 #include "LayerViewer.h"
+#include "Utilities.h"
 
 //==============================================================================
 // LayerViewerComponent : constructeur
@@ -47,7 +48,15 @@ void LayerViewerModel::paintCell(juce::Graphics& g, int rowNumber, int columnId,
 	OGRLayer* ogrLayer = geoLayer->GetOGRLayer();
 	if (ogrLayer == nullptr)
 		return;
+	juce::Image icone;
 	switch(columnId) {
+	case Column::Visibility :
+		if (geoLayer->m_Repres.Visible)
+			icone = getImageFromAssets("View.png");
+		else
+			icone = getImageFromAssets("NoView.png");
+		g.drawImageAt(icone, (width - icone.getWidth())/2, (height - icone.getHeight()) / 2);
+		break;
 	case Column::Name :// Name
 		g.drawText(juce::String(ogrLayer->GetName()), 0, 0, width, height, juce::Justification::centredLeft);
 		break;
@@ -81,6 +90,13 @@ void LayerViewerModel::cellClicked(int rowNumber, int columnId, const juce::Mous
 	bounds.setCentre(event.getMouseDownScreenPosition());
 	bounds.setWidth(1); bounds.setHeight(1);
 
+	// Visibilite
+	if (columnId == Column::Visibility) {
+		geoLayer->m_Repres.Visible = !geoLayer->m_Repres.Visible;
+		sendActionMessage("UpdateRepres");
+		return;
+	}
+
 	// Choix d'une couleur
 	if ((columnId == Column::PenColour) || (columnId == Column::FillColour)) {
 		auto colourSelector = std::make_unique<juce::ColourSelector>(juce::ColourSelector::showAlphaChannel
@@ -90,7 +106,10 @@ void LayerViewerModel::cellClicked(int rowNumber, int columnId, const juce::Mous
 			| juce::ColourSelector::showColourspace);
 
 		colourSelector->setName("background");
-		colourSelector->setCurrentColour(juce::Colour(geoLayer->m_Repres.PenColor));
+		if (columnId == Column::PenColour)
+			colourSelector->setCurrentColour(juce::Colour(geoLayer->m_Repres.PenColor));
+		if (columnId == Column::FillColour)
+			colourSelector->setCurrentColour(juce::Colour(geoLayer->m_Repres.FillColor));
 		colourSelector->addChangeListener(this);
 		colourSelector->setColour(juce::ColourSelector::backgroundColourId, juce::Colours::transparentBlack);
 		colourSelector->setSize(400, 300);
@@ -177,6 +196,7 @@ LayerViewer::LayerViewer()
 	m_Table.setColour(juce::ListBox::outlineColourId, juce::Colours::grey);
 	m_Table.setOutlineThickness(1);
 	// Ajout des colonnes
+	m_Table.getHeader().addColumn(juce::translate(" "), LayerViewerModel::Column::Visibility, 25);
 	m_Table.getHeader().addColumn(juce::translate("Name"), LayerViewerModel::Column::Name, 200);
 	m_Table.getHeader().addColumn(juce::translate("Width"), LayerViewerModel::Column::PenWidth, 50);
 	m_Table.getHeader().addColumn(juce::translate("Pen"), LayerViewerModel::Column::PenColour, 50);
@@ -191,6 +211,7 @@ LayerViewer::LayerViewer()
 //==============================================================================
 void LayerViewer::UpdateColumnName()
 {
+	m_Table.getHeader().setColumnName(LayerViewerModel::Column::Visibility, juce::translate(" "));
 	m_Table.getHeader().setColumnName(LayerViewerModel::Column::Name, juce::translate("Name"));
 	m_Table.getHeader().setColumnName(LayerViewerModel::Column::PenWidth, juce::translate("Width"));
 	m_Table.getHeader().setColumnName(LayerViewerModel::Column::PenColour, juce::translate("Pen"));

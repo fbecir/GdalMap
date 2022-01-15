@@ -6,6 +6,7 @@
 //==============================================================================
 
 #include "RasterLayerViewer.h"
+#include "Utilities.h"
 
 //==============================================================================
 // RasterLayerViewerModel : constructeur
@@ -45,7 +46,15 @@ void RasterLayerViewerModel::paintCell(juce::Graphics& g, int rowNumber, int col
 	if (geoLayer == nullptr)
 		return;
 
+	juce::Image icone;
 	switch (columnId) {
+	case Column::Visibility:
+		if (geoLayer->Visible)
+			icone = getImageFromAssets("View.png");
+		else
+			icone = getImageFromAssets("NoView.png");
+		g.drawImageAt(icone, (width - icone.getWidth()) / 2, (height - icone.getHeight()) / 2);
+		break;
 	case Column::Name:
 		g.drawText(juce::String(geoLayer->Name()), 0, 0, width, height, juce::Justification::centredLeft);
 		break;
@@ -74,35 +83,25 @@ void RasterLayerViewerModel::cellClicked(int rowNumber, int columnId, const juce
 		return;
 	if (rowNumber >= m_Base->GetRasterLayerCount())
 		return;
-	GeoBase::RasterLayer* geoLayer = m_Base->GetRasterLayer(rowNumber);
+	GeoBase::RasterLayer* layer = m_Base->GetRasterLayer(rowNumber);
 	m_ActiveRow = rowNumber;
 	m_ActiveColumn = columnId;
 	juce::Rectangle<int> bounds;
 	bounds.setCentre(event.getMouseDownScreenPosition());
 	bounds.setWidth(1); bounds.setHeight(1);
-	/*
-	// Choix d'une couleur
-	if ((columnId == Column::PenColour) || (columnId == Column::FillColour)) {
-		auto colourSelector = std::make_unique<juce::ColourSelector>(juce::ColourSelector::showAlphaChannel
-			| juce::ColourSelector::showColourAtTop
-			| juce::ColourSelector::editableColour
-			| juce::ColourSelector::showSliders
-			| juce::ColourSelector::showColourspace);
 
-		colourSelector->setName("background");
-		colourSelector->setCurrentColour(juce::Colour(geoLayer->m_Repres.PenColor));
-		colourSelector->addChangeListener(this);
-		colourSelector->setColour(juce::ColourSelector::backgroundColourId, juce::Colours::transparentBlack);
-		colourSelector->setSize(400, 300);
-
-		juce::CallOutBox::launchAsynchronously(std::move(colourSelector), bounds, nullptr);
+	// Visibilite
+	if (columnId == Column::Visibility) {
+		layer->Visible = !layer->Visible;
+		sendActionMessage("UpdateRepres");
 		return;
-	} */
-	// Choix d'une epaisseur
+	}
+
+	// Choix d'une opacite
 	if (columnId == Column::Opacity) {
 		auto opacitySelector = std::make_unique<juce::Slider>();
 		opacitySelector->setRange(0., 100., 1.);
-		opacitySelector->setValue(geoLayer->Opacity()*100.);
+		opacitySelector->setValue(layer->Opacity()*100.);
 		opacitySelector->setSliderStyle(juce::Slider::LinearHorizontal);
 		opacitySelector->setTextBoxStyle(juce::Slider::TextBoxLeft, false, 80, 20);
 		opacitySelector->setSize(200, 50);
@@ -178,6 +177,7 @@ RasterLayerViewer::RasterLayerViewer()
 	m_Table.setColour(juce::ListBox::outlineColourId, juce::Colours::grey);
 	m_Table.setOutlineThickness(1);
 	// Ajout des colonnes
+	m_Table.getHeader().addColumn(juce::translate(" "), RasterLayerViewerModel::Column::Visibility, 25);
 	m_Table.getHeader().addColumn(juce::translate("Name"), RasterLayerViewerModel::Column::Name, 200);
 	m_Table.getHeader().addColumn(juce::translate("Opacity"), RasterLayerViewerModel::Column::Opacity, 50);
 	m_Table.getHeader().addColumn(juce::translate("Pen"), RasterLayerViewerModel::Column::PenColour, 50);
@@ -192,6 +192,7 @@ RasterLayerViewer::RasterLayerViewer()
 //==============================================================================
 void RasterLayerViewer::UpdateColumnName()
 {
+	m_Table.getHeader().setColumnName(RasterLayerViewerModel::Column::Visibility, juce::translate(" "));
 	m_Table.getHeader().setColumnName(RasterLayerViewerModel::Column::Name, juce::translate("Name"));
 	m_Table.getHeader().setColumnName(RasterLayerViewerModel::Column::Opacity, juce::translate("Opacity"));
 	m_Table.getHeader().setColumnName(RasterLayerViewerModel::Column::PenColour, juce::translate("Pen"));
