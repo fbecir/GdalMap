@@ -32,7 +32,7 @@ void SelectionViewerModel::paintRowBackground(juce::Graphics& g, int rowNumber, 
 	g.setColour(juce::Colours::lightblue);
 	if (rowIsSelected)
 		g.drawRect(g.getClipBounds());
-	g.setColour(juce::Colours::black);
+	g.setColour(juce::Colours::white);
 }
 
 void SelectionViewerModel::paintCell(juce::Graphics& g, int rowNumber, int columnId, int width, int height, bool rowIsSelected)

@@ -102,7 +102,9 @@
     </Lib>
     <PostBuildEvent>
       <Command>MKDIR .\x64\Debug\App\Images
-COPY ..\..\Images\*.* .\x64\Debug\App\Images</Command>
+COPY ..\..\Images\*.* .\x64\Debug\App\Images
+MKDIR .\x64\Debug\App\Data
+COPY ..\..\Data\*.* .\x64\Debug\App\Data</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -155,10 +157,13 @@ COPY ..\..\Images\*.* .\x64\Debug\App\Images</Command>
     </Lib>
     <PostBuildEvent>
       <Command>MKDIR .\x64\Release\App\Images
-COPY ..\..\Images\*.* .\x64\Release\App\Images</Command>
+COPY ..\..\Images\*.* .\x64\Release\App\Images
+MKDIR .\x64\Release\App\Data
+COPY ..\..\Data\*.* .\x64\Release\App\Data</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\Source\DtmShader.cpp"/>
     <ClCompile Include="..\..\Source\RasterLayerViewer.cpp"/>
     <ClCompile Include="..\..\Source\FeatureViewer.cpp"/>
     <ClCompile Include="..\..\Source\GeoBase.cpp"/>
@@ -1391,6 +1396,7 @@ COPY ..\..\Images\*.* .\x64\Release\App\Images</Command>
     <ClCompile Include="..\..\JuceLibraryCode\include_juce_gui_extra.cpp"/>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\Source\DtmShader.h"/>
     <ClInclude Include="..\..\Source\Utilities.h"/>
     <ClInclude Include="..\..\Source\RasterLayerViewer.h"/>
     <ClInclude Include="..\..\Source\FeatureViewer.h"/>

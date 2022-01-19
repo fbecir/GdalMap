@@ -32,6 +32,9 @@ void GeoBase::Clear()
 	for (int i = 0; i < m_RLayers.size(); i++)
 		delete m_RLayers[i];
 	m_RLayers.clear();
+	for (int i = 0; i < m_ZLayers.size(); i++)
+		delete m_ZLayers[i];
+	m_ZLayers.clear();
 	for (int i = 0; i < m_Dataset.size(); i++)
 		m_Dataset[i]->Release();
 	m_Dataset.clear();
@@ -49,6 +52,8 @@ bool GeoBase::OpenVectorDataset(const char* filename)
 	// Analyse des layers
 	OGREnvelope total;
 	for (int i = 0; i < poDataset->GetLayerCount(); i++) {
+		if (poDataset->IsLayerPrivate(i))
+			continue;
 		VectorLayer* layer = new VectorLayer;
 		if (layer == nullptr)
 			continue;
@@ -68,7 +73,7 @@ bool GeoBase::OpenVectorDataset(const char* filename)
 //==============================================================================
 // Ouverture d'un dataset raster
 //==============================================================================
-bool GeoBase::OpenRasterDataset(const char* filename, const char* name, bool visible, char** options)
+bool GeoBase::OpenRasterDataset(const char* filename, const char* name, bool visible, char** options, bool dtm)
 {
 	GDALDataset* poDataset = GDALDataset::Open(filename, GDAL_OF_RASTER | GDAL_OF_READONLY, nullptr, options);
 	if (poDataset == NULL)
@@ -79,7 +84,10 @@ bool GeoBase::OpenRasterDataset(const char* filename, const char* name, bool vis
 		if (name != nullptr)
 			layer->Name(name);
 		layer->Visible = visible;
-		m_RLayers.push_back(layer);
+		if (dtm)
+			m_ZLayers.push_back(layer);
+		else
+			m_RLayers.push_back(layer);
 		m_Dataset.push_back(poDataset);
 		m_Env.Merge(layer->Envelope());
 		return true;
@@ -104,7 +112,7 @@ bool GeoBase::OpenRasterMultiDataset(const char* filename)
 	CPLStringList options;
 	options.AddNameValue("EXTENDBEYONDDATELINE", "YES");
 	options.AddNameValue("EXTENT_METHOD", "MOST_PRECISE_TILE_MATRIX");
-	options.AddNameValue("ZOOM_LEVEL", "19");
+	//options.AddNameValue("ZOOM_LEVEL", "19");
 
 	for (int i = 0; i < CSLCount(papszSubdatasets); i++) {
 		char szKeyName[1024];
@@ -123,6 +131,25 @@ bool GeoBase::OpenRasterMultiDataset(const char* filename)
 	}
 	poDataset->Release();
 	return true;
+}
+
+//==============================================================================
+// Indique si un fichier est deja ouvert dans les datasets
+//==============================================================================
+bool GeoBase::IsOpen(const char* filename)
+{
+	for (size_t i = 0; i < m_Dataset.size(); i++) {
+		GDALDataset* poDataset = m_Dataset[i];
+		char** fileList = poDataset->GetFileList();
+		if (fileList == nullptr)
+			continue;
+		if (CSLFindString(fileList, filename) != -1) {
+			CSLDestroy(fileList);
+			return true;
+		}
+		CSLDestroy(fileList);
+	}
+	return false;
 }
 
 //==============================================================================
@@ -177,48 +204,39 @@ bool GeoBase::SelectFeatureFields(int layerId, GIntBig featureId)
 //==============================================================================
 bool GeoBase::ReorderVectorLayer(int oldPosition, int newPosition)
 {
-	if (oldPosition >= m_VLayers.size())
-		return false;
-	VectorLayer* layer = m_VLayers[oldPosition];
-	m_VLayers.erase(m_VLayers.begin() + oldPosition);
-	if (newPosition < 0) {
-		m_VLayers.push_back(layer);
-		return true;
-	}
-	if (newPosition < oldPosition) {
-		m_VLayers.insert(m_VLayers.begin() + newPosition, layer);
-		return true;
-	}
-	if (newPosition <= m_VLayers.size()) {
-		m_VLayers.insert(m_VLayers.begin() + newPosition - 1, layer);
-		return true;
-	}
-	m_VLayers.push_back(layer);
-	return true;
+	return ReorderLayer<VectorLayer>(&m_VLayers, oldPosition, newPosition);
 }
 
 //==============================================================================
-// Change l'ordre des layers vectoriels
+// Change l'ordre des layers raster
 //==============================================================================
 bool GeoBase::ReorderRasterLayer(int oldPosition, int newPosition)
 {
-	if (oldPosition >= m_RLayers.size())
+	return ReorderLayer<RasterLayer>(&m_RLayers, oldPosition, newPosition);
+}
+
+//==============================================================================
+// Change l'ordre dans une liste de layers
+//==============================================================================
+template<typename T> static bool GeoBase::ReorderLayer(std::vector<T*>* V, int oldPosition, int newPosition)
+{
+	if (oldPosition >= V->size())
 		return false;
-	RasterLayer* layer = m_RLayers[oldPosition];
-	m_RLayers.erase(m_RLayers.begin() + oldPosition);
+	T* layer = (*V)[oldPosition];
+	V->erase(V->begin() + oldPosition);
 	if (newPosition < 0) {
-		m_RLayers.push_back(layer);
+		V->push_back(layer);
 		return true;
 	}
 	if (newPosition < oldPosition) {
-		m_RLayers.insert(m_RLayers.begin() + newPosition, layer);
+		V->insert(V->begin() + newPosition, layer);
 		return true;
 	}
-	if (newPosition <= m_RLayers.size()) {
-		m_RLayers.insert(m_RLayers.begin() + newPosition - 1, layer);
+	if (newPosition <= V->size()) {
+		V->insert(V->begin() + newPosition - 1, layer);
 		return true;
 	}
-	m_RLayers.push_back(layer);
+	V->push_back(layer);
 	return true;
 }
 

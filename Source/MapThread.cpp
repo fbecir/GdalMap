@@ -7,6 +7,7 @@
 
 #include "MapThread.h"
 #include "GeoBase.h"
+#include "DtmShader.h"
 
 MapThread::MapThread(const juce::String& threadName, size_t threadStackSize) : juce::Thread(threadName, threadStackSize) 
 { 
@@ -17,7 +18,7 @@ MapThread::MapThread(const juce::String& threadName, size_t threadStackSize) : j
 	m_nNumObjects = 0;
 	m_dX0 = m_dY0 = 0.;
 	m_dScale = 1.0;
-	m_bRaster = m_bVector = m_bOverlay = m_bRasterDone = false;
+	m_bRaster = m_bVector = m_bOverlay = m_bDtm = m_bRasterDone = false;
 	m_SpatialRef.importFromEPSG(3857);
 }
 
@@ -47,17 +48,25 @@ void MapThread::SetDimension(int w, int h)
 		m_Vector = juce::Image(juce::Image::PixelFormat::ARGB, w, h, true);
 		m_Raster = juce::Image(juce::Image::PixelFormat::RGB, w, h, true);
 		m_Overlay = juce::Image(juce::Image::PixelFormat::ARGB, w, h, true);
+		m_Dtm = juce::Image(juce::Image::PixelFormat::RGB, w, h, true);
+		m_RawDtm = juce::Image(juce::Image::PixelFormat::ARGB, w, h, true);
 		m_bRasterDone = false;
 	}
 }
 
-void MapThread::SetUpdate(bool raster, bool vector, bool overlay)
+void MapThread::SetUpdate(bool overlay, bool raster, bool dtm, bool vector)
 {
 	m_bRaster = raster;
 	m_bVector = vector;
 	m_bOverlay = overlay;
+	m_bDtm = dtm;
 	if (raster) {
 		m_Raster.clear(m_Raster.getBounds());
+		m_bRasterDone = false;
+	}
+	if (dtm) {
+		m_Dtm.clear(m_Dtm.getBounds());
+		m_RawDtm.clear(m_RawDtm.getBounds());
 		m_bRasterDone = false;
 	}
 	if (vector)
@@ -85,10 +94,22 @@ void MapThread::run()
 			GeoBase::RasterLayer* poLayer = m_Base->GetRasterLayer(i);
 			if (poLayer == nullptr)
 				continue;
-			if (!poLayer->Visible)
-				continue;
-			DrawLayer(poLayer);
+			if (poLayer->Visible)
+				DrawLayer(poLayer);
 		}
+	}
+	// Affichage des couches MNT
+	if (m_bDtm) {
+		m_bRasterDone = false;
+		for (int i = 0; i < m_Base->GetDtmLayerCount(); i++) {
+			GeoBase::RasterLayer* poLayer = m_Base->GetDtmLayer(i);
+			if (poLayer == nullptr)
+				continue;
+			if (poLayer->Visible)
+				DrawLayer(poLayer, true);
+		}
+		DtmShader shader(m_dScale);
+		shader.ConvertImage(&m_RawDtm, &m_Dtm);
 	}
 	m_bRasterDone = true;
 	// Affichage des couches vectorielles
@@ -116,6 +137,7 @@ bool MapThread::Draw(juce::Graphics& g, int x0, int y0)
 		return false;
 	g.setOpacity(1.f);
 	g.drawImageAt(m_Raster, x0, y0);
+	g.drawImageAt(m_Dtm, x0, y0);
 	g.drawImageAt(m_Vector, x0, y0);
 	g.drawImageAt(m_Overlay, x0, y0);
 	return true;
@@ -328,25 +350,32 @@ void MapThread::DrawSelection()
 }
 
 //==============================================================================
-// Dessin des datasets raster
+// Dessin des layers raster
 //==============================================================================
-void MapThread::DrawLayer(GeoBase::RasterLayer* layer)
+void MapThread::DrawLayer(GeoBase::RasterLayer* layer, bool dtm)
 {
 	if (!m_Env.Intersects(layer->Envelope()))
 		return ;
 	for (int i = 0; i < layer->GetRasterCount(); i++) {
 		if (m_Env.Intersects(layer->GetRasterEnvelope(i)))
-			DrawRaster(layer->GetRasterDataset(i), layer->Opacity());
+			if (dtm)
+				DrawDtm(layer->GetRasterDataset(i), layer->Opacity());
+			else
+				DrawRaster(layer->GetRasterDataset(i), layer->Opacity());
 		if (threadShouldExit())
 			return;
 	}
 }
 
-void MapThread::DrawRaster(GDALDataset* poDataset, float opacity)
+//==============================================================================
+// Dessin d'un dataset raster
+//==============================================================================
+bool MapThread::PrepareRasterDraw(GDALDataset* poDataset, int& U0, int& V0, int& win, int& hin, int& nbBand, 
+																													int& R0, int& S0, int& wout, int& hout)
 {
 	if (poDataset == nullptr)
-		return;
-	int nbBand = poDataset->GetRasterCount();
+		return false;
+	nbBand = poDataset->GetRasterCount();
 	if (nbBand > 3) nbBand = 3;
 	// Pour l'instant, on ne gere pas les rotations et les facteurs d'echelle differents
 	int W = poDataset->GetRasterXSize();
@@ -358,8 +387,8 @@ void MapThread::DrawRaster(GDALDataset* poDataset, float opacity)
 	double gsd = transfo[1];
 	if (Y0 < 1) Y0 = H;
 	// Zone pixel dans l'image
-	int U0 = (int)round((m_Env.MinX - X0) / gsd);
-	int V0 = (int)round((Y0 - m_Env.MaxY) / gsd);
+	U0 = (int)round((m_Env.MinX - X0) / gsd);
+	V0 = (int)round((Y0 - m_Env.MaxY) / gsd);
 	int U1 = (int)round((m_Env.MaxX - X0) / gsd);
 	int V1 = (int)round((Y0 - m_Env.MinY) / gsd);
 	if (U0 < 0) U0 = 0;
@@ -368,29 +397,97 @@ void MapThread::DrawRaster(GDALDataset* poDataset, float opacity)
 	if (V1 > H) V1 = H;
 	// Zone pixel dans le bitmap resultat
 	double gsdR = (m_Env.MaxX - m_Env.MinX) / m_Raster.getWidth();
-	int R0 = (int)round(((U0 * gsd + X0) - m_Env.MinX) / gsdR);
-	int S0 = (int)round((m_Env.MaxY - (Y0 - V0 * gsd)) / gsdR);
+	R0 = (int)round(((U0 * gsd + X0) - m_Env.MinX) / gsdR);
+	S0 = (int)round((m_Env.MaxY - (Y0 - V0 * gsd)) / gsdR);
 	int R1 = (int)round(((U1 * gsd + X0) - m_Env.MinX) / gsdR);
 	int S1 = (int)round((m_Env.MaxY - (Y0 - V1 * gsd)) / gsdR);
-	if ( ((R1 - R0) <= 0) || ((S1 - S0) <= 0) )
+	if (((R1 - R0) <= 0) || ((S1 - S0) <= 0))
+		return false;
+	// Resultat de l'intersection
+	win = U1 - U0;
+	hin = V1 - V0;
+	wout = R1 - R0;
+	hout = S1 - S0;
+	return true;
+}
+
+//==============================================================================
+// Dessin d'un dataset raster
+//==============================================================================
+void MapThread::DrawRaster(GDALDataset* poDataset, float opacity)
+{
+	int U0, V0, win, hin, R0, S0, wout, hout, nbBand;
+	if (!PrepareRasterDraw(poDataset, U0, V0, win, hin, nbBand, R0, S0, wout, hout))
 		return;
+	
 	//
 	juce::Image::PixelFormat format = juce::Image::PixelFormat::RGB;
-	if (nbBand == 1)
-		format = juce::Image::PixelFormat::SingleChannel;
-	juce::Image tmpImage(format, (R1-R0), (S1-S0), true);
+	//if (nbBand == 1)
+	//	format = juce::Image::PixelFormat::SingleChannel;
+	juce::Image tmpImage(format, wout, hout, true);
 	juce::Image::BitmapData bitmap(tmpImage, juce::Image::BitmapData::readWrite);
 	for (int i = 0; i < nbBand; ++i) {
 		// Fetch the band
 		GDALRasterBand* band = poDataset->GetRasterBand(i + 1); // Bandes numerotees de 1 à N
 		// Read the data
-		CPLErr error = band->RasterIO(GF_Read, U0, V0, (U1-U0), (V1-V0), &bitmap.data[nbBand - 1 - i], (R1 - R0), (S1 - S0), GDT_Byte,
+		CPLErr error = band->RasterIO(GF_Read, U0, V0, win, hin, &bitmap.data[nbBand - 1 - i], wout, hout, GDT_Byte,
 			bitmap.pixelStride, bitmap.lineStride);
 		if (error == CE_Failure)
 			return ;
 	}
+	if (nbBand == 1) {	// Cas des images avec palette de couleurs
+		GDALRasterBand* band = poDataset->GetRasterBand(1);
+		if (band->GetColorInterpretation() == GDALColorInterp::GCI_PaletteIndex) {
+			GDALColorTable* table = band->GetColorTable();
+			const GDALColorEntry* entry;
+			for (int i = 0; i < hout; i++) {
+				juce::uint8* linePix = bitmap.getLinePointer(i);
+				for (int j = 0; j < wout; j++) {
+					entry = table->GetColorEntry(linePix[3 * j]);
+					if (entry == nullptr)
+						continue;
+					linePix[3 * j + 2] = entry->c1;	// Ordre BGR dans les images JUCE
+					linePix[3 * j + 1] = entry->c2;
+					linePix[3 * j] = entry->c3;
+				}
+			}
+		}
+	}
 	juce::Graphics g(m_Raster);
 	g.setOpacity(opacity);
+	g.drawImageAt(tmpImage, R0, S0);
+	m_nNumObjects++;
+}
+
+//==============================================================================
+// Dessin d'un dataset raster sous forme MNT
+//==============================================================================
+void MapThread::DrawDtm(GDALDataset* poDataset, float opacity)
+{
+	int U0, V0, win, hin, R0, S0, wout, hout, nbBand;
+	if (!PrepareRasterDraw(poDataset, U0, V0, win, hin, nbBand, R0, S0, wout, hout))
+		return;
+
+
+	juce::Image::PixelFormat format = juce::Image::PixelFormat::ARGB;
+	//if (nbBand == 1)
+	//	format = juce::Image::PixelFormat::SingleChannel;
+	juce::Image tmpImage(format, wout, hout, true);
+	juce::Image::BitmapData bitmap(tmpImage, juce::Image::BitmapData::readWrite);
+	
+	// On recupere uniquement la premiere bande
+	GDALRasterBand* band = poDataset->GetRasterBand(1); // Bandes numerotees de 1 à N
+	// Lecture des donnees
+	GDALDataType type = band->GetRasterDataType();
+
+	CPLErr error = band->RasterIO(GF_Read, U0, V0, win, hin, &bitmap.data[0], wout, hout, type,
+			bitmap.pixelStride, bitmap.lineStride);
+	if (error == CE_Failure)
+		return;
+	float* ptr = (float*)bitmap.data;
+	float z = ptr[0];
+	juce::Graphics g(m_RawDtm);
+	g.setOpacity(1.0);
 	g.drawImageAt(tmpImage, R0, S0);
 	m_nNumObjects++;
 }

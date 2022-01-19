@@ -232,6 +232,9 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\Source\DtmShader.cpp">
+      <Filter>GdalMap\Source</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\Source\RasterLayerViewer.cpp">
       <Filter>GdalMap\Source</Filter>
     </ClCompile>
@@ -1584,6 +1587,9 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\Source\DtmShader.h">
+      <Filter>GdalMap\Source</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\Utilities.h">
       <Filter>GdalMap\Source</Filter>
     </ClInclude>

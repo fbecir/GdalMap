@@ -13,8 +13,7 @@
 //==============================================================================
 MapView::MapView() : m_MapThread("MapThread")
 {
-  m_Transform = juce::AffineTransform(1.f, 0.f, 0.f, 0.f, -1.f, 0.f);
-	m_dX0 = m_dY0 = m_dX = m_dY = 0.;
+	m_dX0 = m_dY0 = m_dX = m_dY = m_dZ = 0.;
 	m_dScale = 1.0;
 	m_bDrag = m_bZoom = m_bSelect = false;
 	m_Base = nullptr;
@@ -75,7 +74,7 @@ void MapView::DrawDecoration(juce::Graphics& g, int deltaX, int deltaY)
 	g.setColour(juce::Colours::white);
 	g.setOpacity(1.);
 	g.drawText(juce::String(env.MinX - deltaX*m_dScale, 2) + " ; " + juce::String(env.MinY + deltaY * m_dScale, 2), R, juce::Justification::centredLeft);
-	g.drawText(juce::String(m_dX, 2) + " ; " + juce::String(m_dY, 2), R, juce::Justification::centred);
+	g.drawText(juce::String(m_dX, 2) + " ; " + juce::String(m_dY, 2) + " ; " + juce::String(m_dZ, 2), R, juce::Justification::centred);
 	g.drawText(juce::String("1/") + juce::String(ComputeCartoScale(), 0), R, juce::Justification::centredRight);
 
 	R = juce::Rectangle<int>(0, 0, b.getWidth(), 15);
@@ -92,7 +91,7 @@ void MapView::DrawDecoration(juce::Graphics& g, int deltaX, int deltaY)
 //==============================================================================
 // Lancement du thread de dessin des donnees
 //==============================================================================
-void MapView::RenderMap(bool raster, bool vector, bool overlay)
+void MapView::RenderMap(bool raster, bool dtm,  bool vector, bool overlay)
 {
 	m_MapThread.signalThreadShouldExit();
 	if (m_MapThread.isThreadRunning()) {
@@ -106,7 +105,7 @@ void MapView::RenderMap(bool raster, bool vector, bool overlay)
 	m_MapThread.SetEnvelope(m_dX0, m_dY0, m_dX0 + b.getWidth() * m_dScale, m_dY0 - b.getHeight() * m_dScale);
 	m_MapThread.SetBase(m_Base);
 	m_MapThread.SetTransform(m_dX0, m_dY0, m_dScale);
-	m_MapThread.SetUpdate(raster, vector, overlay);
+	m_MapThread.SetUpdate(raster, dtm, vector, overlay);
 
 	m_MapThread.startThread();
 }
@@ -137,6 +136,7 @@ void MapView::mouseMove(const juce::MouseEvent& event)
 {
 	m_dX = event.x;
 	m_dY = event.y;
+	m_dZ = m_MapThread.GetZ(event.x, event.y);
 	Pixel2Ground(m_dX, m_dY);
 }
 

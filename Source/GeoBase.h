@@ -22,8 +22,10 @@ public:
 	void Clear();
 
 	bool OpenVectorDataset(const char* filename);
-	bool OpenRasterDataset(const char* filename, const char* name = nullptr, bool visible = true, char** options = nullptr);
+	bool OpenRasterDataset(const char* filename, const char* name = nullptr, bool visible = true,
+												 char** options = nullptr, bool dtm = false);
 	bool OpenRasterMultiDataset(const char* filename);
+	bool IsOpen(const char* filename);
 	size_t SelectFeatures(const OGREnvelope& env, OGRSpatialReference* spatialRef);
 	bool SelectFeatureFields(int layerId, GIntBig featureId);
 
@@ -35,11 +37,13 @@ public:
 	OGRLayer* GetOGRLayer(int i) { if (i < m_VLayers.size()) return m_VLayers[i]->GetOGRLayer(); return nullptr; }
 	int GetRasterLayerCount() { return (int)m_RLayers.size(); }
 	RasterLayer* GetRasterLayer(int i) { if (i < m_RLayers.size()) return m_RLayers[i]; return nullptr; }
+	int GetDtmLayerCount() { return (int)m_ZLayers.size(); }
+	RasterLayer* GetDtmLayer(int i) { if (i < m_ZLayers.size()) return m_ZLayers[i]; return nullptr; }
 
 	OGREnvelope GetEnvelope() { return m_Env; }
 	size_t GetSelectionCount() { return m_Selection.size(); }
 	Feature GetSelection(size_t index) { return m_Selection[index]; }
-	int GetFieldCount() { return m_Field.size() / 2; }
+	int GetFieldCount() { return (int)m_Field.size() / 2; }
 	std::string GetFieldName(int i) { if (i < GetFieldCount()) return m_Field[2 * i]; return ""; }
 	std::string GetFieldValue(int i) { if (i < GetFieldCount()) return m_Field[2 * i + 1]; return ""; }
 
@@ -115,7 +119,7 @@ public:
 		float Opacity() { return m_Opacity; }
 		void Opacity(float opa) { m_Opacity = opa;  if (opa < 0.) m_Opacity = 0; if (opa > 1.) m_Opacity = 1.;}
 		bool AddDataset(GDALDataset* poDataset);
-		int GetRasterCount() { return m_Raster.size(); }
+		int GetRasterCount() { return (int)m_Raster.size(); }
 		GDALDataset* GetRasterDataset(int i) { if (i < m_Raster.size()) return m_Raster[i].Dataset(); return nullptr; }
 		OGREnvelope GetRasterEnvelope(int i) { if (i < m_Raster.size()) return m_Raster[i].Envelope(); return OGREnvelope(); }
 
@@ -125,10 +129,12 @@ public:
 protected:
 	OGRSpatialReference				m_SpatialRef;
 	OGREnvelope								m_Env;
-	std::vector<GDALDataset*> m_Dataset;
-	std::vector<VectorLayer*>	m_VLayers;
-	std::vector<RasterLayer*>	m_RLayers;
-	std::vector<Feature>			m_Selection;
-	std::vector<std::string>	m_Field;
+	std::vector<GDALDataset*> m_Dataset;		// All the datasets
+	std::vector<VectorLayer*>	m_VLayers;		// Vector layers
+	std::vector<RasterLayer*>	m_RLayers;		// Raster layers
+	std::vector<RasterLayer*>	m_ZLayers;		// DTM layers
+	std::vector<Feature>			m_Selection;	// Selected features
+	std::vector<std::string>	m_Field;			// Fields of the selected feature
 
+	template<typename T> static bool ReorderLayer(std::vector<T*>* V, int oldPosition, int newPosition);
 };

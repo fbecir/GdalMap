@@ -38,13 +38,20 @@ public:
     menuOpenFolder,
     menuQuit,
     menuUndo,
+    menuTranslate,
     menuAddVectorLayer,
     menuAddRasterLayer,
+    menuAddDtmLayer,
     menuZoomTotal,
     menuTest,
     menuShowSidePanel,
     menuShowSelectionViewer,
     menuShowFeatureViewer,
+    menuAddOSM,
+    menuAddGeoportailOrthophoto,
+    menuAddGeoportailOrthohisto,
+    menuAddGeoportailSatellite,
+    menuAddGeoportailCartes,
     gdalAbout
   };
 
@@ -82,7 +89,6 @@ private:
   std::unique_ptr<juce::StretchableLayoutResizerBar> m_VerticalDividerBar;
   std::unique_ptr <juce::ConcertinaPanel> m_Panel;
  
-  OGREnvelope m_Frame;
   GeoBase   m_Base;
  
   juce::String OpenFolder(juce::String optionName = "", juce::String mes = "");
@@ -93,11 +99,15 @@ private:
 
   void Clear();
   void AboutGdalMap();
+  void Translate();
 
   void OpenVector();
 
   bool AddVectorLayer();
-  bool AddRasterLayer();
+  bool AddRasterLayer(juce::String rasterfile = "");
+  bool AddMultiRasterLayer(juce::String server = "");
+  bool AddDtmLayer(juce::String dtmfile = "");
+  bool AddOSMServer();
 
   void Test();
 

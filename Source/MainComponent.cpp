@@ -123,12 +123,23 @@ juce::PopupMenu MainComponent::getMenuForIndex(int menuIndex, const juce::String
 	}
 	else if (menuIndex == 1) // Edit
 	{
+		menu.addCommandItem(&m_CommandManager, CommandIDs::menuTranslate);
 		menu.addCommandItem(&m_CommandManager, CommandIDs::menuTest);
 	}
 	else if (menuIndex == 2) // Layers
 	{
 		menu.addCommandItem(&m_CommandManager, CommandIDs::menuAddVectorLayer);
 		menu.addCommandItem(&m_CommandManager, CommandIDs::menuAddRasterLayer);
+		menu.addCommandItem(&m_CommandManager, CommandIDs::menuAddDtmLayer);
+		juce::PopupMenu WmtsSubMenu;
+		WmtsSubMenu.addCommandItem(&m_CommandManager, CommandIDs::menuAddOSM);
+		juce::PopupMenu GeoportailSubMenu;
+		GeoportailSubMenu.addCommandItem(&m_CommandManager, CommandIDs::menuAddGeoportailOrthophoto);
+		GeoportailSubMenu.addCommandItem(&m_CommandManager, CommandIDs::menuAddGeoportailOrthohisto);
+		GeoportailSubMenu.addCommandItem(&m_CommandManager, CommandIDs::menuAddGeoportailSatellite);
+		GeoportailSubMenu.addCommandItem(&m_CommandManager, CommandIDs::menuAddGeoportailCartes);
+		WmtsSubMenu.addSubMenu(juce::translate("Geoportail (France)"),GeoportailSubMenu);
+		menu.addSubMenu(juce::translate("Add WMTS / TMS server"), WmtsSubMenu);
 		menu.addCommandItem(&m_CommandManager, CommandIDs::menuZoomTotal);
 	}
 	else if (menuIndex == 3)
@@ -161,9 +172,12 @@ juce::ApplicationCommandTarget* MainComponent::getNextCommandTarget()
 void MainComponent::getAllCommands(juce::Array<juce::CommandID>& c)
 {
 	juce::Array<juce::CommandID> commands{ CommandIDs::menuNew, CommandIDs::menuOpenImage, CommandIDs::menuOpenVector, CommandIDs::menuOpenFolder,
-		CommandIDs::menuQuit, CommandIDs::menuUndo, CommandIDs::menuAddVectorLayer, CommandIDs::menuAddRasterLayer, CommandIDs::menuZoomTotal,
+		CommandIDs::menuQuit, CommandIDs::menuUndo, CommandIDs::menuTranslate,
+		CommandIDs::menuAddVectorLayer, CommandIDs::menuAddRasterLayer, CommandIDs::menuAddDtmLayer, CommandIDs::menuZoomTotal,
 		CommandIDs::menuTest, CommandIDs::menuShowSidePanel, CommandIDs::menuShowSelectionViewer,
-		CommandIDs::menuShowFeatureViewer, CommandIDs::gdalAbout };
+		CommandIDs::menuShowFeatureViewer, CommandIDs::menuAddOSM, CommandIDs::menuAddGeoportailOrthophoto, 
+		CommandIDs::menuAddGeoportailOrthohisto, CommandIDs::menuAddGeoportailSatellite, CommandIDs::menuAddGeoportailCartes,
+		CommandIDs::gdalAbout };
 	c.addArray(commands);
 }
 
@@ -194,11 +208,32 @@ void MainComponent::getCommandInfo(juce::CommandID commandID, juce::ApplicationC
 		result.setInfo(juce::translate("Quit"), "Uses a burger menu", "Menu", 0);
 		result.addDefaultKeypress('q', juce::ModifierKeys::ctrlModifier);
 		break;
-	case CommandIDs::menuAddVectorLayer:
+	case CommandIDs::menuTranslate:
+		result.setInfo(juce::translate("Translate"), juce::translate("Load a translation file"), "Menu", 0);
+		break;
+	break; case CommandIDs::menuAddVectorLayer:
 		result.setInfo(juce::translate("Add vector data"), juce::translate("Add vector data"), "Menu", 0);
 		break;
 	case CommandIDs::menuAddRasterLayer:
 		result.setInfo(juce::translate("Add raster data"), juce::translate("Add raster data"), "Menu", 0);
+		break;
+	case CommandIDs::menuAddDtmLayer:
+		result.setInfo(juce::translate("Add a DTM layer"), juce::translate("Add a DTM layer"), "Menu", 0);
+		break;
+	case CommandIDs::menuAddOSM:
+		result.setInfo(juce::translate("Add OSM data"), juce::translate("Add OSM data"), "Menu", 0);
+		break;
+	case CommandIDs::menuAddGeoportailOrthophoto:
+		result.setInfo(juce::translate("Orthophoto"), juce::translate("Orthophoto"), "Menu", 0);
+		break;
+	case CommandIDs::menuAddGeoportailOrthohisto:
+		result.setInfo(juce::translate("Historic Orthophoto"), juce::translate("Historic Orthophoto"), "Menu", 0);
+		break;
+	case CommandIDs::menuAddGeoportailSatellite:
+		result.setInfo(juce::translate("Satellite"), juce::translate("Satellite"), "Menu", 0);
+		break;
+	case CommandIDs::menuAddGeoportailCartes:
+		result.setInfo(juce::translate("Cartography"), juce::translate("Cartography"), "Menu", 0);
 		break;
 	case CommandIDs::menuZoomTotal:
 		result.setInfo(juce::translate("Zoom total"), juce::translate("Zoom total"), "Menu", 0);
@@ -249,6 +284,9 @@ bool MainComponent::perform(const InvocationInfo& info)
 	case CommandIDs::menuQuit:
 		juce::JUCEApplication::quit();
 		break;
+	case CommandIDs::menuTranslate:
+		Translate();
+		break;
 	case CommandIDs::menuTest:
 		Test();
 		break;
@@ -257,6 +295,24 @@ bool MainComponent::perform(const InvocationInfo& info)
 		break;
 	case CommandIDs::menuAddRasterLayer:
 		AddRasterLayer();
+		break;
+	case CommandIDs::menuAddDtmLayer:
+		AddDtmLayer();
+		break;
+	case CommandIDs::menuAddOSM:
+		AddOSMServer();
+		break;
+	case CommandIDs::menuAddGeoportailOrthophoto:
+		AddMultiRasterLayer("WMTS:https://wxs.ign.fr/ortho/geoportail/wmts?SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetCapabilities");
+		break;
+	case CommandIDs::menuAddGeoportailOrthohisto:
+		AddMultiRasterLayer("WMTS:https://wxs.ign.fr/orthohisto/geoportail/wmts?SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetCapabilities");
+		break;
+	case CommandIDs::menuAddGeoportailSatellite:
+		AddMultiRasterLayer("WMTS:https://wxs.ign.fr/satellite/geoportail/wmts?SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetCapabilities");
+		break;
+	case CommandIDs::menuAddGeoportailCartes:
+		AddMultiRasterLayer("WMTS:https://wxs.ign.fr/cartes/geoportail/wmts?SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetCapabilities");
 		break;
 	case CommandIDs::menuZoomTotal:
 		m_MapView.get()->ZoomWorld();
@@ -313,7 +369,7 @@ void MainComponent::actionListenerCallback(const juce::String& message)
 			m_Base.SelectFeatureFields(geoFeature.IdLayer(), geoFeature.Id());
 			m_FeatureViewer.get()->SetBase(&m_Base);
 		}
-		m_MapView.get()->RenderMap(false, false, true);
+		m_MapView.get()->RenderMap(true, false, false, false);
 		return;
 	}
 	
@@ -458,43 +514,110 @@ bool MainComponent::AddVectorLayer()
 	juce::String filename = OpenFile("VectorPath");
 	if (filename.isEmpty())
 		return false;
-
+	if (m_Base.IsOpen(filename.getCharPointer())) {
+		juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "GdalMap", 
+			filename + juce::translate(" is already opened"), "OK");
+		return false;
+	}
 	if (!m_Base.OpenVectorDataset(filename.getCharPointer())) {
-		juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "GdalMap", "Impossible d'ouvrir le fichier " + filename, "OK");
+		juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "GdalMap", 
+			filename + juce::translate(" : this file cannot be opened"), "OK");
 			return false;
 	}
-	m_Frame = m_Base.GetEnvelope();
-	m_MapView.get()->SetFrame(m_Frame);
+	m_MapView.get()->SetFrame(m_Base.GetEnvelope());
 	m_LayerViewer.get()->SetBase(&m_Base);
 
 	return true;
 }
 
 //==============================================================================
-// Ajout d'une couche vectorielle
+// Ajout d'une couche raster
 //==============================================================================
-bool MainComponent::AddRasterLayer()
+bool MainComponent::AddRasterLayer(juce::String rasterfile)
 {
-	juce::String filename = OpenFile("RasterPath");
+	juce::String filename = rasterfile;
+	if (filename.isEmpty())
+		filename = OpenFile("RasterPath");
 	if (filename.isEmpty())
 		return false;
 	juce::File file(filename);
 	juce::String name = file.getFileNameWithoutExtension();
 
-	if (!m_Base.OpenRasterDataset(filename.getCharPointer(), name.getCharPointer()) ){
-		juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "GdalMap", "Impossible d'ouvrir le fichier " + filename, "OK");
+	if (m_Base.IsOpen(filename.getCharPointer())) {
+		juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "GdalMap",
+			filename + juce::translate(" is already opened"), "OK");
 		return false;
 	}
-	m_Frame = m_Base.GetEnvelope();
-	m_MapView.get()->SetFrame(m_Frame);
+	if (!m_Base.OpenRasterDataset(filename.getCharPointer(), name.getCharPointer()) ){
+		juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "GdalMap",
+			filename + juce::translate(" : this file cannot be opened"), "OK");
+		return false;
+	}
+	m_MapView.get()->SetFrame(m_Base.GetEnvelope());
 	m_RasterLayerViewer.get()->SetBase(&m_Base);
 
 	return true;
 }
 
-void MainComponent::Test()
+//==============================================================================
+// Ajout d'une couche raster multiple (WMTS server par exemple)
+//==============================================================================
+bool MainComponent::AddMultiRasterLayer(juce::String server)
 {
-	/*
+	if (!m_Base.OpenRasterMultiDataset(server.toStdString().c_str())) {
+		return false;
+	}
+	m_MapView.get()->SetFrame(m_Base.GetEnvelope());
+	m_RasterLayerViewer.get()->SetBase(&m_Base);
+	return true;
+}
+
+//==============================================================================
+// Ajout d'une couche MNT
+//==============================================================================
+bool MainComponent::AddDtmLayer(juce::String dtmfile)
+{
+	juce::String filename = dtmfile;
+	if (filename.isEmpty())
+		filename = OpenFile("DtmPath");
+	if (filename.isEmpty())
+		return false;
+	juce::File file(filename);
+	juce::String name = file.getFileNameWithoutExtension();
+
+	if (m_Base.IsOpen(filename.getCharPointer())) {
+		juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "GdalMap",
+			filename + juce::translate(" is already opened"), "OK");
+		return false;
+	}
+	if (!m_Base.OpenRasterDataset(filename.getCharPointer(), name.getCharPointer(), true, nullptr, true)) {
+		juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "GdalMap",
+			filename + juce::translate(" : this file cannot be opened"), "OK");
+		return false;
+	}
+	m_MapView.get()->SetFrame(m_Base.GetEnvelope());
+	//m_RasterLayerViewer.get()->SetBase(&m_Base);
+
+	return true;
+}
+//==============================================================================
+// Ajout d'une couche TMS OSM
+//==============================================================================
+bool MainComponent::AddOSMServer()
+{
+	auto assetsDir = juce::File::getSpecialLocation(juce::File::currentExecutableFile)
+		.getParentDirectory().getChildFile("Data");
+	auto resourceFile = assetsDir.getChildFile("GDAL_WMS_OSM.xml");
+	if (resourceFile.existsAsFile())
+		return AddRasterLayer(resourceFile.getFullPathName());
+	return false;
+}
+
+//==============================================================================
+// Chargement d'un fichier de traduction
+//==============================================================================
+void MainComponent::Translate()
+{
 	juce::String filename = OpenFile();
 	if (filename.isEmpty())
 		return;
@@ -504,26 +627,12 @@ void MainComponent::Test()
 	juce::LocalisedStrings::setCurrentMappings(new juce::LocalisedStrings(file, true));
 	m_FeatureViewer.get()->UpdateColumnName();
 	m_LayerViewer.get()->UpdateColumnName();
+	m_RasterLayerViewer.get()->UpdateColumnName();
 	m_SelectionViewer.get()->UpdateColumnName();
-
-	return;*/
-
-
-	juce::String server = "WMTS:https://maps.wien.gv.at/wmts/1.0.0/WMTSCapabilities.xml,layer=lb";
-	server = "WMTS:https://wxs.ign.fr/ortho/geoportail/wmts?EXCEPTIONS=text/xml&SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetCapabilities,layer=ORTHOIMAGERY.ORTHOPHOTOS";
-	//server = "WMTS:https://wxs.ign.fr/ortho/geoportail/wmts?EXCEPTIONS=text/xml&&SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetCapabilities,layer=PCRS.LAMB93";
-	//server = "WMTS:https://wxs.ign.fr/orthohisto/geoportail/wmts?EXCEPTIONS=text/xml&&SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetCapabilities,layer=ORTHOIMAGERY.ORTHOPHOTOS.1950-1965";
-	//server = "WMTS:https://wxs.ign.fr/orthohisto/geoportail/wmts?EXCEPTIONS=text/xml&&SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetCapabilities,layer=ORTHOIMAGERY.ORTHOPHOTOS2011-2015";
-	//server = "TMS:https://tile.openstreetmap.org/${z}/${x}/${y}.png";
-	//server = "WMS:http://a.tile.opencyclemap.org/cycle/${z}/${x}/${y}.png";
-	//server = "WMTS:https://wxs.ign.fr/ortho/geoportail/wmts?EXCEPTIONS=text/xml&&SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetCapabilities";
-	server = "WMTS:https://wxs.ign.fr/ortho/geoportail/wmts?SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetCapabilities,layer=ORTHOIMAGERY.ORTHOPHOTOS.BDORTHO";
-	server = "WMTS:https://wxs.ign.fr/ortho/geoportail/wmts?SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetCapabilities";
-
-	if (!m_Base.OpenRasterMultiDataset(server.toStdString().c_str())) {
-		return;
-	}
-	m_Frame = m_Base.GetEnvelope();
-	m_MapView.get()->SetFrame(m_Frame);
-	m_LayerViewer.get()->SetBase(&m_Base);
 }
+
+void MainComponent::Test()
+{
+	
+}
+

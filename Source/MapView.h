@@ -32,7 +32,7 @@ public:
   void Ground2Pixel(double& X, double& Y);
   void SetBase(GeoBase* base) { m_MapThread.stopThread(-1); m_Base = base; resized(); }
   void StopThread() { m_MapThread.stopThread(-1); m_Image.clear(m_Image.getBounds()); RenderMap(); }
-  void RenderMap(bool raster = true, bool vector = true, bool overlay = true);
+  void RenderMap(bool overlay = true, bool raster = true, bool dtm = true, bool vector = true);
   void SelectFeatures(juce::Point<int>);
   void SelectFeatures(const double& X0, const double& Y0, const double& X1, const double& Y1);
   void DrawDecoration(juce::Graphics&, int deltaX = 0, int deltaY = 0);
@@ -48,7 +48,6 @@ public:
   void mouseDoubleClick(const juce::MouseEvent& event) override;
 
 private:
-  juce::AffineTransform m_Transform;
   OGREnvelope m_Frame;
   double				m_dX0;
   double				m_dY0;
@@ -58,6 +57,7 @@ private:
   bool          m_bSelect;
   double        m_dX;
   double        m_dY;
+  double        m_dZ;
   juce::Point<int>  m_StartPt;
   juce::Point<int>  m_DragPt;
   juce::Image   m_Image;    // Image de la vue

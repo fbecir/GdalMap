@@ -33,7 +33,7 @@ void LayerViewerModel::paintRowBackground(juce::Graphics& g, int rowNumber, int 
 	g.setColour(juce::Colours::lightblue);
 	if (rowIsSelected)
 		g.drawRect(g.getClipBounds());
-	g.setColour(juce::Colours::black);
+	g.setColour(juce::Colours::white);
 }
 
 void LayerViewerModel::paintCell(juce::Graphics& g, int rowNumber, int columnId, int width, int height, bool rowIsSelected)

@@ -16,6 +16,7 @@ static const unsigned char temp_binary_data_0[] =
 "\"Value\" = \"Valeur\"\r\n"
 "\"Add vector data\" = \"Ajouter des donn\xc3\xa9""es vectorielles\"\r\n"
 "\"Add raster data\" = \"Ajouter des images\"\r\n"
+"\"Add a DTM layer\" = \"Ajouter une couche MNT\"\r\n"
 "\"Quit\" = \"Quitter\"\r\n"
 "\"About GdalMap\" = \"A propos de GdalMap\"\r\n"
 "\"Selection\" = \"S\xc3\xa9lection\"\r\n"
@@ -25,7 +26,19 @@ static const unsigned char temp_binary_data_0[] =
 "\"Brush\" = \"Pinceau\"\r\n"
 "\"Width\" = \"Epaisseur\"\r\n"
 "\"Opacity\" = \"Opacit\xc3\xa9\"\r\n"
-"\"Visibility\" = \"Visibilit\xc3\xa9\"";
+"\"Visibility\" = \"Visibilit\xc3\xa9\"\r\n"
+"\" is already opened\" = \" est d\xc3\xa9j\xc3\xa0 ouvert\"\r\n"
+"\" : this file cannot be opened\" = \" : ce fichier ne peut pas \xc3\xaatre ouvert\"\r\n"
+"\"Add WMTS / TMS server\" : \"Ajout d'une couche WMTS / TMS\"\r\n"
+"\"Geoportail (France)\" : \"G\xc3\xa9oportail (France)\"\r\n"
+"\"Translate\" : \"Traduire\"\r\n"
+"\"Load a translation file\" : \"Chargement d'un fichier de traduction\"\r\n"
+"\"Translate\" = \"Traduire\"\r\n"
+"\"Layers\" = \"Couches\"\r\n"
+"\"Add OSM data\" = \"Ajout d'une couche OSM\"\r\n"
+"\"View\" = \"Afficher\"\r\n"
+"\"View Side Panel\" = \"Afficher le panneau d'information\"\r\n"
+"\"View Feature Viewer\" \"Afficher la fiche objet\"";
 
 const char* Translation_fr_txt = (const char*) temp_binary_data_0;
 
@@ -41,7 +54,7 @@ const char* getNamedResource (const char* resourceNameUTF8, int& numBytes)
 
     switch (hash)
     {
-        case 0x6c6745eb:  numBytes = 425; return Translation_fr_txt;
+        case 0x6c6745eb:  numBytes = 1012; return Translation_fr_txt;
         default: break;
     }
 
