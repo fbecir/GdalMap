@@ -32,6 +32,11 @@ MainComponent::MainComponent()
 	m_RasterLayerViewer.get()->SetBase(&m_Base);
 	m_RasterLayerViewer.get()->SetActionListener(this);
 
+	m_DtmViewer.reset(new DtmViewer);
+	addAndMakeVisible(m_DtmViewer.get());
+	m_DtmViewer.get()->SetBase(&m_Base);
+	m_DtmViewer.get()->SetActionListener(this);
+
 	m_SelectionViewer.reset(new SelectionViewer);
 	addAndMakeVisible(m_SelectionViewer.get());
 	m_SelectionViewer.get()->SetBase(&m_Base);
@@ -44,10 +49,12 @@ MainComponent::MainComponent()
 	addAndMakeVisible(m_Panel.get());
 	m_Panel.get()->addPanel(-1, m_LayerViewer.get(), false);
 	m_Panel.get()->addPanel(-1, m_RasterLayerViewer.get(), false);
+	m_Panel.get()->addPanel(-1, m_DtmViewer.get(), false);
 	m_Panel.get()->addPanel(-1, m_SelectionViewer.get(), false);
 	m_Panel.get()->setCustomPanelHeader(m_Panel.get()->getPanel(0), new juce::TextButton(juce::translate("Layers")), true);
 	m_Panel.get()->setCustomPanelHeader(m_Panel.get()->getPanel(1), new juce::TextButton(juce::translate("Images")), true);
-	m_Panel.get()->setCustomPanelHeader(m_Panel.get()->getPanel(2), new juce::TextButton(juce::translate("Selection")), true);
+	m_Panel.get()->setCustomPanelHeader(m_Panel.get()->getPanel(2), new juce::TextButton(juce::translate("DTM")), true);
+	m_Panel.get()->setCustomPanelHeader(m_Panel.get()->getPanel(3), new juce::TextButton(juce::translate("Selection")), true);
 
 	// set up the layout and resizer bars..
 	m_VerticalLayout.setItemLayout(0, -0.2, -1.0, -0.65); 
@@ -357,11 +364,21 @@ bool MainComponent::perform(const InvocationInfo& info)
 //==============================================================================
 void MainComponent::actionListenerCallback(const juce::String& message)
 {
-	if (message == "UpdateRepres") {
-		if (m_MapView != nullptr)
-			m_MapView.get()->RenderMap();
+	if (m_MapView == nullptr)
+		return;
+	if (message == "UpdateVector") {
+		m_MapView.get()->RenderMap(true, false, false, true, true);
 		return;
 	}
+	if (message == "UpdateRaster") {
+		m_MapView.get()->RenderMap(true, true, false, false);
+		return;
+	}
+	if (message == "UpdateDtm") {
+		m_MapView.get()->RenderMap(true, false, true, false);
+		return;
+	}
+
 	if (message == "UpdateSelectFeatures") {
 		m_SelectionViewer.get()->SetBase(&m_Base);
 		if (m_Base.GetSelectionCount() >= 1) {
@@ -628,6 +645,7 @@ void MainComponent::Translate()
 	m_FeatureViewer.get()->UpdateColumnName();
 	m_LayerViewer.get()->UpdateColumnName();
 	m_RasterLayerViewer.get()->UpdateColumnName();
+	m_DtmViewer.get()->UpdateColumnName();
 	m_SelectionViewer.get()->UpdateColumnName();
 }
 

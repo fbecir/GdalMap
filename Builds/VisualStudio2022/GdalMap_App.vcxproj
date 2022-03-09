@@ -163,6 +163,7 @@ COPY ..\..\Data\*.* .\x64\Release\App\Data</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\Source\DtmViewer.cpp"/>
     <ClCompile Include="..\..\Source\DtmShader.cpp"/>
     <ClCompile Include="..\..\Source\RasterLayerViewer.cpp"/>
     <ClCompile Include="..\..\Source\FeatureViewer.cpp"/>
@@ -1396,6 +1397,7 @@ COPY ..\..\Data\*.* .\x64\Release\App\Data</Command>
     <ClCompile Include="..\..\JuceLibraryCode\include_juce_gui_extra.cpp"/>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\Source\DtmViewer.h"/>
     <ClInclude Include="..\..\Source\DtmShader.h"/>
     <ClInclude Include="..\..\Source\Utilities.h"/>
     <ClInclude Include="..\..\Source\RasterLayerViewer.h"/>

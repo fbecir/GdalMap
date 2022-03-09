@@ -17,7 +17,7 @@ class RasterLayerViewerModel : public juce::TableListBoxModel,
 	public juce::Slider::Listener,
 	public juce::ActionBroadcaster {
 public:
-	typedef enum { Visibility = 1, Name = 2, Opacity = 3, PenColour = 4, FillColour = 5 } Column;
+	typedef enum { Visibility = 1, Name = 2, Opacity = 3, GSD = 4 } Column;
 	RasterLayerViewerModel();
 
 	int getNumRows() override;

@@ -68,6 +68,7 @@ ifeq ($(CONFIG),Release)
 endif
 
 OBJECTS_APP := \
+  $(JUCE_OBJDIR)/DtmViewer_bd62e030.o \
   $(JUCE_OBJDIR)/DtmShader_bfa70483.o \
   $(JUCE_OBJDIR)/RasterLayerViewer_249c0b67.o \
   $(JUCE_OBJDIR)/FeatureViewer_333dd409.o \
@@ -98,6 +99,11 @@ $(JUCE_OUTDIR)/$(JUCE_TARGET_APP) : $(OBJECTS_APP) $(RESOURCES)
 	-$(V_AT)mkdir -p $(JUCE_LIBDIR)
 	-$(V_AT)mkdir -p $(JUCE_OUTDIR)
 	$(V_AT)$(CXX) -o $(JUCE_OUTDIR)/$(JUCE_TARGET_APP) $(OBJECTS_APP) $(JUCE_LDFLAGS) $(JUCE_LDFLAGS_APP) $(RESOURCES) $(TARGET_ARCH)
+
+$(JUCE_OBJDIR)/DtmViewer_bd62e030.o: ../../Source/DtmViewer.cpp
+	-$(V_AT)mkdir -p $(JUCE_OBJDIR)
+	@echo "Compiling DtmViewer.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/DtmShader_bfa70483.o: ../../Source/DtmShader.cpp
 	-$(V_AT)mkdir -p $(JUCE_OBJDIR)

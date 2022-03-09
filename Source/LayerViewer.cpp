@@ -93,7 +93,7 @@ void LayerViewerModel::cellClicked(int rowNumber, int columnId, const juce::Mous
 	// Visibilite
 	if (columnId == Column::Visibility) {
 		geoLayer->m_Repres.Visible = !geoLayer->m_Repres.Visible;
-		sendActionMessage("UpdateRepres");
+		sendActionMessage("UpdateVector");
 		return;
 	}
 
@@ -125,10 +125,35 @@ void LayerViewerModel::cellClicked(int rowNumber, int columnId, const juce::Mous
 		widthSelector->setSliderStyle(juce::Slider::LinearHorizontal);
 		widthSelector->setTextBoxStyle(juce::Slider::TextBoxLeft, false, 80, 20);
 		widthSelector->setSize(200, 50);
+		widthSelector->setChangeNotificationOnlyOnRelease(true);
 		widthSelector->addListener(this);
 		juce::CallOutBox::launchAsynchronously(std::move(widthSelector), bounds, nullptr);
 		return;
 	}
+}
+
+//==============================================================================
+// DoubleClic dans une cellule
+//==============================================================================
+void LayerViewerModel::cellDoubleClicked(int rowNumber, int columnId, const juce::MouseEvent& event)
+{
+	if (m_Base == nullptr)
+		return;
+	if (rowNumber >= m_Base->GetVectorLayerCount())
+		return;
+	GeoBase::VectorLayer* geoLayer = m_Base->GetVectorLayer(rowNumber);
+
+	// Nom du layer
+	if (columnId == Column::Name) {
+		OGRSpatialReference spatialRef;
+		spatialRef.importFromEPSG(3857);
+		OGREnvelope env = geoLayer->Envelope();
+		env = GeoBase::ConvertEnvelop(env, geoLayer->SpatialRef(), &spatialRef);
+		sendActionMessage("ZoomEnvelope:" + juce::String(env.MinX, 2) + ":" + juce::String(env.MaxX, 2) + ":" +
+			juce::String(env.MinY, 2) + ":" + juce::String(env.MaxY, 2));
+		return;
+	}
+
 }
 
 //==============================================================================
@@ -161,7 +186,7 @@ void LayerViewerModel::changeListenerCallback(juce::ChangeBroadcaster* source)
 				geoLayer->m_Repres.PenColor = color;
 			if (m_ActiveColumn == Column::FillColour)
 				geoLayer->m_Repres.FillColor = color;
-			sendActionMessage("UpdateRepres");
+			sendActionMessage("UpdateVector");
 		}
 	}
 }
@@ -180,7 +205,7 @@ void LayerViewerModel::sliderValueChanged(juce::Slider* slider)
 	// Choix d'une epaisseur
 	if (m_ActiveColumn == Column::PenWidth) {
 		geoLayer->m_Repres.PenSize = (int)slider->getValue();
-		sendActionMessage("UpdateRepres");
+		sendActionMessage("UpdateVector");
 	}
 }
 
@@ -223,7 +248,7 @@ void LayerViewer::UpdateColumnName()
 //==============================================================================
 void LayerViewer::actionListenerCallback(const juce::String& message)
 {
-	if (message == "UpdateRepres") {
+	if (message == "UpdateVector") {
 		repaint();
 	}
 }
@@ -244,7 +269,7 @@ void LayerViewer::itemDropped(const SourceDetails& details)
 	m_Base->ReorderVectorLayer(i, row);
 	//m_Table.updateContent();
 	//m_Table.repaint();
-	m_Model.sendActionMessage("UpdateRepres");
+	m_Model.sendActionMessage("UpdateVector");
 }
 
 bool LayerViewer::isInterestedInDragSource(const SourceDetails& details)

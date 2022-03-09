@@ -127,7 +127,7 @@ void SelectionViewer::UpdateColumnName()
 //==============================================================================
 void SelectionViewer::actionListenerCallback(const juce::String& message)
 {
-	if (message == "UpdateRepres") {
+	if (message == "UpdateVector") {
 		repaint();
 	}
 }

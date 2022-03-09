@@ -15,29 +15,23 @@ protected:
   double CoefPente(float altC, float altH, float altD);
   int Isohypse(float altC, float altH, float altD);
 
-  bool EstompLine(float* lineR, float* lineS, float* lineT, juce::uint32 w, juce::uint8* rgb, juce::uint32 num);
+  bool EstompLine(float* lineR, float* lineS, float* lineT, juce::uint32 w, juce::uint8* rgba, juce::uint32 num);
 
-  static double m_dNoData;
-  static double m_dZ0;
-  static double m_dZ1;
-  static double m_dZ2;
-  static double m_dZ3;
-  static double m_dZ4;
-  static int    m_nMode;
-  static juce::uint8   m_HZColor[3];
-  static juce::uint8   m_Z0Color[3];
-  static juce::uint8   m_ZColor[15];
   static double XPI;
-
   double  m_dGSD;   // Pas terrain du MNT
 
 public:
-  DtmShader(double gsd = 25.) { m_dGSD = gsd; }
-
-  static void SetPref32Bits(double nodata, double z0, double z1, double z2,
-    double z3, double z4, int mode);
-  static void SetCol32Bits(juce::uint8* Color, bool set = true);
-
-  bool ConvertArea(float* area, juce::uint32 w, juce::uint32 h, juce::uint8* rgb);
+  DtmShader(double gsd = 25.);
   bool ConvertImage(juce::Image* rawImage, juce::Image* rgbImage);
+
+  enum class ShaderMode { Altitude = 0, Shading, Light_Shading, Free_Shading, Slope, Colour, Shading_Colour, Contour};
+
+  static std::vector<double> m_Z;     // Plages d'altitude
+  static std::vector<juce::Colour> m_Colour;  // Plages de couleur
+  static ShaderMode    m_Mode;  // Mode d'affichage
+  static double m_dIsoStep; // Pas des isohypses
+  static double m_dSolarAzimuth;  // Angle azimuthal en degres
+  static double m_dSolarZenith;   // Angle zenithal en degres
+
+  static bool AddAltitude(double z);
 };

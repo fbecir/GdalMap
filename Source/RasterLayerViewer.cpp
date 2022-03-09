@@ -61,16 +61,9 @@ void RasterLayerViewerModel::paintCell(juce::Graphics& g, int rowNumber, int col
 	case Column::Opacity:
 		g.drawText(juce::String(geoLayer->Opacity()*100), 0, 0, width, height, juce::Justification::centred);
 		break;
-	/*
-	case Column::PenColour:// Pen
-		g.setColour(juce::Colour(geoLayer->m_Repres.PenColor));
-		g.fillRect(0, 0, width, height);
+	case Column::GSD:
+		g.drawText(juce::String(geoLayer->GSD()), 0, 0, width, height, juce::Justification::centredLeft);
 		break;
-	case Column::FillColour:// brush
-		g.setColour(juce::Colour(geoLayer->m_Repres.FillColor));
-		g.fillRect(0, 0, width, height);
-		break;
-		*/
 	}
 }
 
@@ -93,7 +86,7 @@ void RasterLayerViewerModel::cellClicked(int rowNumber, int columnId, const juce
 	// Visibilite
 	if (columnId == Column::Visibility) {
 		layer->Visible = !layer->Visible;
-		sendActionMessage("UpdateRepres");
+		sendActionMessage("UpdateRaster");
 		return;
 	}
 
@@ -141,7 +134,7 @@ void RasterLayerViewerModel::changeListenerCallback(juce::ChangeBroadcaster* sou
 				geoLayer->m_Repres.PenColor = color;
 			if (m_ActiveColumn == Column::FillColour)
 				geoLayer->m_Repres.FillColor = color;
-			sendActionMessage("UpdateRepres");
+			sendActionMessage("UpdateRaster");
 		}
 	}
 	*/
@@ -158,10 +151,10 @@ void RasterLayerViewerModel::sliderValueChanged(juce::Slider* slider)
 		return;
 	GeoBase::RasterLayer* geoLayer = m_Base->GetRasterLayer(m_ActiveRow);
 
-	// Choix d'une epaisseur
+	// Choix d'une opacite
 	if (m_ActiveColumn == Column::Opacity) {
 		geoLayer->Opacity(slider->getValue() * 0.01);
-		sendActionMessage("UpdateRepres");
+		sendActionMessage("UpdateRaster");
 	}
 }
 
@@ -180,8 +173,7 @@ RasterLayerViewer::RasterLayerViewer()
 	m_Table.getHeader().addColumn(juce::translate(" "), RasterLayerViewerModel::Column::Visibility, 25);
 	m_Table.getHeader().addColumn(juce::translate("Name"), RasterLayerViewerModel::Column::Name, 200);
 	m_Table.getHeader().addColumn(juce::translate("Opacity"), RasterLayerViewerModel::Column::Opacity, 50);
-	m_Table.getHeader().addColumn(juce::translate("Pen"), RasterLayerViewerModel::Column::PenColour, 50);
-	m_Table.getHeader().addColumn(juce::translate("Brush"), RasterLayerViewerModel::Column::FillColour, 50);
+	m_Table.getHeader().addColumn(juce::translate("GSD"), RasterLayerViewerModel::Column::GSD, 50);
 	m_Table.setSize(352, 200);
 	m_Table.setModel(&m_Model);
 	addAndMakeVisible(m_Table);
@@ -195,8 +187,7 @@ void RasterLayerViewer::UpdateColumnName()
 	m_Table.getHeader().setColumnName(RasterLayerViewerModel::Column::Visibility, juce::translate(" "));
 	m_Table.getHeader().setColumnName(RasterLayerViewerModel::Column::Name, juce::translate("Name"));
 	m_Table.getHeader().setColumnName(RasterLayerViewerModel::Column::Opacity, juce::translate("Opacity"));
-	m_Table.getHeader().setColumnName(RasterLayerViewerModel::Column::PenColour, juce::translate("Pen"));
-	m_Table.getHeader().setColumnName(RasterLayerViewerModel::Column::FillColour, juce::translate("Brush"));
+	m_Table.getHeader().setColumnName(RasterLayerViewerModel::Column::GSD, juce::translate("GSD"));
 }
 
 //==============================================================================
@@ -204,7 +195,7 @@ void RasterLayerViewer::UpdateColumnName()
 //==============================================================================
 void RasterLayerViewer::actionListenerCallback(const juce::String& message)
 {
-	if (message == "UpdateRepres") {
+	if (message == "UpdateRaster") {
 		repaint();
 	}
 }
@@ -225,7 +216,7 @@ void RasterLayerViewer::itemDropped(const SourceDetails& details)
 	m_Base->ReorderRasterLayer(i, row);
 	//m_Table.updateContent();
 	//m_Table.repaint();
-	m_Model.sendActionMessage("UpdateRepres");
+	m_Model.sendActionMessage("UpdateRaster");
 }
 
 bool RasterLayerViewer::isInterestedInDragSource(const SourceDetails& details)

@@ -16,6 +16,7 @@
 #include "SelectionViewer.h"
 #include "FeatureViewer.h"
 #include "RasterLayerViewer.h"
+#include "DtmViewer.h"
 
 
 //==============================================================================
@@ -83,6 +84,7 @@ private:
   std::unique_ptr<RasterLayerViewer> m_RasterLayerViewer;
   std::unique_ptr<SelectionViewer> m_SelectionViewer;
   std::unique_ptr<FeatureViewer> m_FeatureViewer;
+  std::unique_ptr<DtmViewer> m_DtmViewer;
   std::unique_ptr<MapView> m_MapView;
 
   juce::StretchableLayoutManager m_VerticalLayout;

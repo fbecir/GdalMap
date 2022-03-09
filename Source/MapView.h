@@ -32,7 +32,7 @@ public:
   void Ground2Pixel(double& X, double& Y);
   void SetBase(GeoBase* base) { m_MapThread.stopThread(-1); m_Base = base; resized(); }
   void StopThread() { m_MapThread.stopThread(-1); m_Image.clear(m_Image.getBounds()); RenderMap(); }
-  void RenderMap(bool overlay = true, bool raster = true, bool dtm = true, bool vector = true);
+  void RenderMap(bool overlay = true, bool raster = true, bool dtm = true, bool vector = true, bool force_vector = false);
   void SelectFeatures(juce::Point<int>);
   void SelectFeatures(const double& X0, const double& Y0, const double& X1, const double& Y1);
   void DrawDecoration(juce::Graphics&, int deltaX = 0, int deltaY = 0);

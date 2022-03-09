@@ -34,6 +34,7 @@ void MapView::paint (juce::Graphics& g)
 
 	if ((m_bZoom)||(m_bSelect)) {
 		g.drawImageAt(m_Image, 0, 0);
+		g.setColour(juce::Colours::pink);
 		g.drawRect(juce::Rectangle<int>(m_StartPt, m_DragPt+m_StartPt), 1);
 		return;
 	}
@@ -75,7 +76,7 @@ void MapView::DrawDecoration(juce::Graphics& g, int deltaX, int deltaY)
 	g.setOpacity(1.);
 	g.drawText(juce::String(env.MinX - deltaX*m_dScale, 2) + " ; " + juce::String(env.MinY + deltaY * m_dScale, 2), R, juce::Justification::centredLeft);
 	g.drawText(juce::String(m_dX, 2) + " ; " + juce::String(m_dY, 2) + " ; " + juce::String(m_dZ, 2), R, juce::Justification::centred);
-	g.drawText(juce::String("1/") + juce::String(ComputeCartoScale(), 0), R, juce::Justification::centredRight);
+	g.drawText(juce::String("1/") + juce::String(ComputeCartoScale(), 1), R, juce::Justification::centredRight);
 
 	R = juce::Rectangle<int>(0, 0, b.getWidth(), 15);
 	g.setColour(juce::Colours::darkgrey);
@@ -91,7 +92,7 @@ void MapView::DrawDecoration(juce::Graphics& g, int deltaX, int deltaY)
 //==============================================================================
 // Lancement du thread de dessin des donnees
 //==============================================================================
-void MapView::RenderMap(bool raster, bool dtm,  bool vector, bool overlay)
+void MapView::RenderMap(bool overlay, bool raster, bool dtm,  bool vector, bool force_vector)
 {
 	m_MapThread.signalThreadShouldExit();
 	if (m_MapThread.isThreadRunning()) {
@@ -101,11 +102,9 @@ void MapView::RenderMap(bool raster, bool dtm,  bool vector, bool overlay)
 	}
 
 	auto b = getLocalBounds();
-	m_MapThread.SetDimension(b.getWidth(), b.getHeight());
-	m_MapThread.SetEnvelope(m_dX0, m_dY0, m_dX0 + b.getWidth() * m_dScale, m_dY0 - b.getHeight() * m_dScale);
 	m_MapThread.SetBase(m_Base);
-	m_MapThread.SetTransform(m_dX0, m_dY0, m_dScale);
-	m_MapThread.SetUpdate(raster, dtm, vector, overlay);
+	m_MapThread.SetUpdate(overlay, raster, dtm, vector);
+	m_MapThread.SetWorld(m_dX0, m_dY0, m_dScale, b.getWidth(), b.getHeight(), force_vector);
 
 	m_MapThread.startThread();
 }
@@ -157,7 +156,7 @@ void MapView::mouseUp(const juce::MouseEvent& event)
 	if ((abs(m_DragPt.x) > 1) || (abs(m_DragPt.y) > 1)) {
 		auto b = getLocalBounds();
 		if (m_bZoom) {
-			m_dScale /= (b.getWidth() / m_DragPt.x + b.getHeight() / m_DragPt.y) * 0.5;
+			m_dScale /= ((b.getWidth() / m_DragPt.x + b.getHeight() / m_DragPt.y) * 0.5);
 			CenterView((X0 + X1)*0.5, (Y0 + Y1)*0.5);
 		}
 		if (m_bSelect) {

@@ -200,19 +200,19 @@ bool GeoBase::SelectFeatureFields(int layerId, GIntBig featureId)
 }
 
 //==============================================================================
-// Change l'ordre des layers vectoriels
+// Change l'ordre des layers
 //==============================================================================
 bool GeoBase::ReorderVectorLayer(int oldPosition, int newPosition)
-{
-	return ReorderLayer<VectorLayer>(&m_VLayers, oldPosition, newPosition);
+{ 
+	return ReorderLayer<VectorLayer>(&m_VLayers, oldPosition, newPosition); 
 }
-
-//==============================================================================
-// Change l'ordre des layers raster
-//==============================================================================
 bool GeoBase::ReorderRasterLayer(int oldPosition, int newPosition)
-{
+{ 
 	return ReorderLayer<RasterLayer>(&m_RLayers, oldPosition, newPosition);
+}
+bool GeoBase::ReorderDtmLayer(int oldPosition, int newPosition)
+{ 
+	return ReorderLayer<RasterLayer>(&m_ZLayers, oldPosition, newPosition);
 }
 
 //==============================================================================
@@ -273,9 +273,9 @@ GeoBase::VectorLayer::VectorLayer()
 	m_Id = 0;
 	m_bTransactions = false;
 	m_nIndex = 0;
-	m_Repres.PenColor = 0xCC008800;
+	m_Repres.PenColor = 0xFF008800;
 	m_Repres.FillColor = 0x55770000;
-	m_Repres.PenSize = 4.;
+	m_Repres.PenSize = 2.;
 	m_Repres.Visible = true;
 }
 
@@ -383,6 +383,15 @@ bool GeoBase::RasterLayer::AddDataset(GDALDataset* poDataset)
 	return true;
 }
 
+double GeoBase::RasterLayer::GSD()
+{
+	double gsd = std::numeric_limits<double>::max();
+	for (size_t i = 0; i < m_Raster.size(); i++)
+		if (m_Raster[i].GSD() < gsd)
+			gsd = m_Raster[i].GSD();
+	return gsd;
+}
+
 //==============================================================================
 // Ajout d'un dataset raster
 //==============================================================================
@@ -392,6 +401,7 @@ bool GeoBase::Raster::AddDataset(GDALDataset* poDataset)
 	poDataset->GetGeoTransform(transfo);
 	if (fabs(transfo[1] * transfo[5] - transfo[2] * transfo[4]) < 0.000001)
 		return false;	// Transformation non affine
+	m_GSD = transfo[1];
 	int W = poDataset->GetRasterXSize();
 	int H = poDataset->GetRasterYSize();
 	double X0 = transfo[0];

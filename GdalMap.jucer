@@ -6,6 +6,8 @@
               companyName="IGN">
   <MAINGROUP id="FpGinB" name="GdalMap">
     <GROUP id="{AD36F250-69FA-EB93-96A6-624AD0FAFCCF}" name="Source">
+      <FILE id="VS0ZP6" name="DtmViewer.cpp" compile="1" resource="0" file="Source/DtmViewer.cpp"/>
+      <FILE id="t91erj" name="DtmViewer.h" compile="0" resource="0" file="Source/DtmViewer.h"/>
       <FILE id="EScaiL" name="DtmShader.h" compile="0" resource="0" file="Source/DtmShader.h"/>
       <FILE id="vnVylg" name="DtmShader.cpp" compile="1" resource="0" file="Source/DtmShader.cpp"/>
       <FILE id="LwmOzo" name="Utilities.h" compile="0" resource="0" file="Source/Utilities.h"/>

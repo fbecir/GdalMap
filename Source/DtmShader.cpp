@@ -10,56 +10,62 @@
 
 // Preferences d'affichage
 double DtmShader::XPI = 3.14159265358979323846;
-double DtmShader::m_dNoData = -999.;
-double DtmShader::m_dZ0 = 0.;
-double DtmShader::m_dZ1 = 200.;
-double DtmShader::m_dZ2 = 400.;
-double DtmShader::m_dZ3 = 600.;
-double DtmShader::m_dZ4 = 5500.;
-int DtmShader::m_nMode = 6;
-
-/*
-juce::uint8 DtmShader::m_HZColor[3] = { 255, 0, 0 };
-juce::uint8 DtmShader::m_Z0Color[3] = { 3, 34, 76 };
-juce::uint8 DtmShader::m_ZColor[15] = { 64, 128, 128, 255, 255, 0, 255, 128, 0,
-                                        128, 64, 0, 240, 240, 240 };
-                                        */
-juce::uint8 DtmShader::m_HZColor[3] = { 0, 0, 255 };
-juce::uint8 DtmShader::m_Z0Color[3] = { 76, 34, 3 };
-juce::uint8 DtmShader::m_ZColor[15] = { 128, 128, 64, 0, 255, 255, 0, 128, 255,
-                                        0, 64, 128, 240, 240, 240 };
+DtmShader::ShaderMode DtmShader::m_Mode = DtmShader::ShaderMode::Shading;
+double DtmShader::m_dIsoStep = 25.;
+double DtmShader::m_dSolarAzimuth = 135.;
+double DtmShader::m_dSolarZenith = 45.;
+std::vector<double> DtmShader::m_Z;
+std::vector<juce::Colour> DtmShader::m_Colour;
 
 
-
-void DtmShader::SetPref32Bits(double nodata, double z0, double z1, double z2,
-  double z3, double z4, int mode)
+bool DtmShader::AddAltitude(double z)
 {
-  m_dNoData = nodata;
-  m_dZ0 = z0;
-  m_dZ1 = z1;
-  m_dZ2 = z2;
-  m_dZ3 = z3;
-  m_dZ4 = z4;
-  m_nMode = mode;
+  if (m_Z.size() < 2)
+    return false;
+  if (z < m_Z[0]) {
+    m_Z.insert(m_Z.begin(), z);
+    m_Colour.insert(m_Colour.begin(), juce::Colour(127, 127, 127));
+    return true;
+  }
+  for (int i = 1; i < m_Z.size(); i++) {
+    if ((z >= m_Z[i - 1]) && (z < m_Z[i])) {
+      m_Z.insert(m_Z.begin() + i, z);
+      m_Colour.insert(m_Colour.begin() + i, juce::Colour(127, 127, 127));
+      return true;
+    }
+  }
+  m_Z.push_back(z);
+  m_Colour.push_back(juce::Colour(127, 127, 127));
+  return true;
 }
 
-void DtmShader::SetCol32Bits(juce::uint8* Color, bool set)
+//==============================================================================
+// Constructeur
+//==============================================================================
+DtmShader::DtmShader(double gsd)
 {
-  if (set) {
-    ::memcpy(m_HZColor, Color, 3 * sizeof(juce::uint8));
-    ::memcpy(m_Z0Color, &Color[3], 3 * sizeof(juce::uint8));
-    ::memcpy(m_ZColor, &Color[6], 15 * sizeof(juce::uint8));
-  }
-  else {
-    ::memcpy(Color, m_HZColor, 3 * sizeof(juce::uint8));
-    ::memcpy(&Color[3], m_Z0Color, 3 * sizeof(juce::uint8));
-    ::memcpy(&Color[6], m_ZColor, 15 * sizeof(juce::uint8));
+  m_dGSD = gsd;
+  if (m_Z.size() < 1) { // Premier shader : on initialise
+    m_Z.push_back(-999.); // No data
+    m_Z.push_back(0.);
+    m_Z.push_back(200.);
+    m_Z.push_back(400.);
+    m_Z.push_back(600.);
+    m_Z.push_back(3500.);
+    m_Colour.clear();
+    m_Colour.push_back(juce::Colour((juce::uint8)255, (juce::uint8)0, (juce::uint8)0, (juce::uint8)255));
+    m_Colour.push_back(juce::Colour((juce::uint8)3, (juce::uint8)34, (juce::uint8)76, (juce::uint8)127));
+    m_Colour.push_back(juce::Colour((juce::uint8)64, (juce::uint8)128, (juce::uint8)128, (juce::uint8)127));
+    m_Colour.push_back(juce::Colour((juce::uint8)255, (juce::uint8)255, (juce::uint8)0, (juce::uint8)127));
+    m_Colour.push_back(juce::Colour((juce::uint8)255, (juce::uint8)128, (juce::uint8)0, (juce::uint8)127));
+    m_Colour.push_back(juce::Colour((juce::uint8)128, (juce::uint8)64, (juce::uint8)0, (juce::uint8)127));
+    m_Colour.push_back(juce::Colour((juce::uint8)240, (juce::uint8)240, (juce::uint8)240, (juce::uint8)127));
   }
 }
 
 //-----------------------------------------------------------------------------
-// Fonction d'estompage d'un pixel à partir de l'altitude du pixel, de l'altitude du pixel juste au dessus,
-// de l'altitude du pixel juste à sa droite
+// Fonction d'estompage d'un pixel Ã  partir de l'altitude du pixel, de l'altitude du pixel juste au dessus,
+// de l'altitude du pixel juste Ã  sa droite
 //-----------------------------------------------------------------------------
 double DtmShader::CoefEstompage(float altC, float altH, float altD, float angleH, float angleV)
 {
@@ -72,7 +78,7 @@ double DtmShader::CoefEstompage(float altC, float altH, float altD, float angleH
   // Recherche de la direction de la normale a la surface du mnt
   double dY[3], dX[3], normale[3];
 
-  // Initialisation des vecteurs de la surface du pixel considéré
+  // Initialisation des vecteurs de la surface du pixel considÃ©rÃ©
   dY[0] = 0;
   dY[1] = deltaY;
   dY[2] = (double)(altH - altC);
@@ -86,12 +92,12 @@ double DtmShader::CoefEstompage(float altC, float altH, float altD, float angleH
   normale[1] = -(dX[0] * dY[2]);
   normale[2] = dX[0] * dY[1];
 
-  // Determination de l'angle entre la normale et la direction de la lumière
+  // Determination de l'angle entre la normale et la direction de la lumiÃ¨re
   // Modification des teintes en fonction de cet angle
   double correction;
   double DirLum[3];
   
-  // Passage d'une représentation angulaire de la direction de la lumiere en représentation cartésienne
+  // Passage d'une reprÃ©sentation angulaire de la direction de la lumiere en reprÃ©sentation cartÃ©sienne
   DirLum[0] = cos(XPI / 180 * angleV * -1) * sin(XPI / 180 * angleH);
   DirLum[1] = cos(XPI / 180 * angleV * -1) * cos(XPI / 180 * angleH);
   DirLum[2] = sin(XPI / 180 * angleV * -1);
@@ -133,7 +139,7 @@ double DtmShader::CoefPente(float altC, float altH, float altD)
 //-----------------------------------------------------------------------------
 int DtmShader::Isohypse(float altC, float altH, float altD)
 {
-  double step = m_dZ1 - m_dZ0;
+  double step = m_dIsoStep;
   int nb_isoC = (int)ceil(altC / step);
   int nb_isoH = (int)ceil(altH / step);
   int nb_isoD = (int)ceil(altD / step);
@@ -150,79 +156,80 @@ int DtmShader::Isohypse(float altC, float altH, float altD)
 //-----------------------------------------------------------------------------
 // Calcul de l'estompage sur une ligne
 //-----------------------------------------------------------------------------
-bool DtmShader::EstompLine(float* lineR, float* lineS, float* lineT, juce::uint32 W, juce::uint8* rgb, juce::uint32 num)
+bool DtmShader::EstompLine(float* lineR, float* lineS, float* lineT, juce::uint32 W, juce::uint8* rgba, juce::uint32 num)
 {
   float* ptr = lineS;
-  double coef = 1., r, g, b;
+  double coef = 1., r, g, b, a;
   float val;
   int index = 0, nb_iso;
+  float angleH = (float)m_dSolarAzimuth, angleV = (float)m_dSolarZenith;
+  if (m_Mode == ShaderMode::Shading) {
+    angleH = 135.; angleV = 45.;
+  }
+  if (m_Mode == ShaderMode::Light_Shading) {
+    angleH = 135.; angleV = 65.;
+  }
+
   for (juce::uint32 i = 0; i < W; i++) {
     val = *ptr;
-    r = g = b = 255;
-    if (val <= m_dNoData) { // Hors zone
-      ::memcpy(&rgb[3 * i], m_HZColor, 3 * sizeof(juce::uint8));
+    r = g = b = a = 255;
+    juce::uint32 pix_col = m_Colour[0].getARGB();
+
+    if (val <= m_Z[0]) { // No data
+      ::memcpy(&rgba[4 * i], &pix_col, 4 * sizeof(juce::uint8));
       ptr++;
       continue;
     }
-    if (val <= m_dZ0) { // Sous la mer
-      coef = (m_dZ0 - val);
-      index = -1;
-      r = m_Z0Color[0];
-      g = m_Z0Color[1];
-      b = m_Z0Color[2];
+    if (val <= m_Z[1]) { // Sous la mer
+      coef = (m_Z[1] - val);
+      index = 1;
+      r = m_Colour[index].getRed();
+      g = m_Colour[index].getGreen();
+      b = m_Colour[index].getBlue();
+      a = m_Colour[index].getAlpha();
     }
 
-    if ((val > m_dZ0) && (val < m_dZ1)) {
-      coef = (m_dZ1 - val) / (m_dZ1 - m_dZ0);
-      index = 0;
-      r = m_ZColor[0] * coef + m_ZColor[3] * (1 - coef);
-      g = m_ZColor[1] * coef + m_ZColor[4] * (1 - coef);
-      b = m_ZColor[2] * coef + m_ZColor[5] * (1 - coef);
-    }
-    if ((val >= m_dZ1) && (val < m_dZ2)) {
-      coef = (m_dZ2 - val) / (m_dZ2 - m_dZ1);
-      index = 3;
-      r = m_ZColor[3] * coef + m_ZColor[6] * (1 - coef);
-      g = m_ZColor[4] * coef + m_ZColor[7] * (1 - coef);
-      b = m_ZColor[5] * coef + m_ZColor[8] * (1 - coef);
-    }
-    if ((val >= m_dZ2) && (val < m_dZ3)) {
-      coef = (m_dZ3 - val) / (m_dZ3 - m_dZ2);
-      index = 6;
-      r = m_ZColor[6] * coef + m_ZColor[9] * (1 - coef);
-      g = m_ZColor[7] * coef + m_ZColor[10] * (1 - coef);
-      b = m_ZColor[8] * coef + m_ZColor[11] * (1 - coef);
-    }
-    if ((val >= m_dZ3) && (val < m_dZ4)) {
-      coef = (m_dZ4 - val) / (m_dZ4 - m_dZ3);
-      index = 9;
-      r = m_ZColor[9] * coef + m_ZColor[12] * (1 - coef);
-      g = m_ZColor[10] * coef + m_ZColor[13] * (1 - coef);
-      b = m_ZColor[11] * coef + m_ZColor[14] * (1 - coef);
+    for (int j = 2; j < m_Z.size(); j++) {
+      if ((val > m_Z[j - 1]) && (val <= m_Z[j])) {
+        coef = (m_Z[j] - val) / (m_Z[j] - m_Z[j-1]);
+        index = j;
+        r = m_Colour[j].getRed() * coef + m_Colour[j+1].getRed() * (1 - coef);
+        g = m_Colour[j].getGreen() * coef + m_Colour[j+1].getGreen() * (1 - coef);
+        b = m_Colour[j].getBlue() * coef + m_Colour[j+1].getBlue() * (1 - coef);
+        a = m_Colour[j].getAlpha() * coef + m_Colour[j+1].getAlpha() * (1 - coef);
+      }
     }
 
-    if (val >= m_dZ4) {
-      index = 12;
+    if (val > m_Z[m_Z.size() - 1]) {
+      index = m_Z.size();
+      r = m_Colour[index].getRed();
+      g = m_Colour[index].getGreen();
+      b = m_Colour[index].getBlue();
+      a = m_Colour[index].getAlpha();
     }
 
-    switch (m_nMode) {
-    case 0: coef = 1.;
+    switch (m_Mode) {
+    case ShaderMode::Altitude: coef = 1.;
       break;
-    case 1: // Estompage
+
+    case ShaderMode::Shading: // Estompage
+    case ShaderMode::Light_Shading: // Estompage leger
+    case ShaderMode::Free_Shading: // Estompage Libre
       if (num == 0) {
         if (i < (W - 1))
-          coef = CoefEstompage(lineT[i], val, lineT[i + 1]);
+          coef = CoefEstompage(lineT[i], val, lineT[i + 1], angleH, angleV);
         else
-          coef = CoefEstompage(lineS[i - 1], lineR[i - 1], val);
+          coef = CoefEstompage(lineS[i - 1], lineR[i - 1], val, angleH, angleV);
       }
       else {
         if (i < (W - 1))
-          coef = CoefEstompage(val, lineR[i], lineS[i + 1]);
+          coef = CoefEstompage(val, lineR[i], lineS[i + 1], angleH, angleV);
         else
-          coef = CoefEstompage(lineS[i - 1], lineR[i - 1], val);
+          coef = CoefEstompage(lineS[i - 1], lineR[i - 1], val, angleH, angleV);
       }
       break;
-    case 2: // Pente
+
+    case ShaderMode::Slope: // Pente
       if (num == 0) {
         if (i < (W - 1))
           coef = CoefPente(lineT[i], val, lineT[i + 1]);
@@ -236,15 +243,16 @@ bool DtmShader::EstompLine(float* lineR, float* lineS, float* lineT, juce::uint3
           coef = CoefPente(lineS[i - 1], lineR[i - 1], val);
       }
       break;
-    case 3: // Aplat de couleurs
+
+    case ShaderMode::Colour: // Aplat de couleurs
       coef = 1.;
-      if (index >= 0) {
-        r = m_ZColor[index];
-        g = m_ZColor[index + 1];
-        b = m_ZColor[index + 2];
-      }
+      r = m_Colour[index].getRed();
+      g = m_Colour[index].getGreen();
+      b = m_Colour[index].getBlue();
+      a = m_Colour[index].getAlpha();
       break;
-    case 4: // Aplat + estompage
+
+    case ShaderMode::Shading_Colour: // Aplat + estompage
       if (num == 0) {
         if (i < (W - 1))
           coef = CoefEstompage(lineT[i], val, lineT[i + 1]);
@@ -257,15 +265,17 @@ bool DtmShader::EstompLine(float* lineR, float* lineS, float* lineT, juce::uint3
         else
           coef = CoefEstompage(lineS[i - 1], lineR[i - 1], val);
       }
-      if (index >= 0) {
-        r = m_ZColor[index];
-        g = m_ZColor[index + 1];
-        b = m_ZColor[index + 2];
+      if (index > 0) {
+        r = m_Colour[index].getRed();
+        g = m_Colour[index].getGreen();
+        b = m_Colour[index].getBlue();
+        a = m_Colour[index].getAlpha();
       }
       break;
-    case 5: // Isohypses
+
+    case ShaderMode::Contour: // Isohypses
       coef = 1.;
-      r = g = b = 255;
+      a = r = g = b = 0;
       if (num == 0) {
         if (i < (W - 1))
           nb_iso = Isohypse(lineT[i], val, lineT[i + 1]);
@@ -280,73 +290,40 @@ bool DtmShader::EstompLine(float* lineR, float* lineS, float* lineT, juce::uint3
       }
 
       if (nb_iso > -9999) {
-        double cote = nb_iso * (m_dZ1 - m_dZ0);
-        if (cote > m_dZ4) index = 12;
-        if (cote <= m_dZ4) index = 9;
-        if (cote <= m_dZ3) index = 6;
-        if (cote <= m_dZ2) index = 3;
-        if (cote <= m_dZ1) index = 0;
-        if (cote <= m_dZ0) index = -1;
-
-        if (index >= 0) {
-          r = m_ZColor[index];
-          g = m_ZColor[index + 1];
-          b = m_ZColor[index + 2];
+        double cote = nb_iso * m_dIsoStep;
+        for (int j = 0; j < m_Z.size(); j++) {
+          index = j;
+          if (cote < m_Z[j])
+            break;
         }
-        else {
-          r = m_Z0Color[0];
-          g = m_Z0Color[1];
-          b = m_Z0Color[2];
-        }
-      }
-
-      break;
-    case 6: // Estompage leger
-      if (num == 0) {
-        if (i < (W - 1))
-          coef = CoefEstompage(lineT[i], val, lineT[i + 1], 135., 65.);
-        else
-          coef = CoefEstompage(lineS[i - 1], lineR[i - 1], val, 135., 65.);
-      }
-      else {
-        if (i < (W - 1))
-          coef = CoefEstompage(val, lineR[i], lineS[i + 1], 135., 65.);
-        else
-          coef = CoefEstompage(lineS[i - 1], lineR[i - 1], val, 135., 65.);
+        r = m_Colour[index].getRed();
+        g = m_Colour[index].getGreen();
+        b = m_Colour[index].getBlue();
+        a = m_Colour[index].getAlpha();
       }
       break;
+
     }
 
-    rgb[3 * i] = round(r * coef);
-    rgb[3 * i + 1] = round(g * coef);
-    rgb[3 * i + 2] = round(b * coef);
+    pix_col = juce::Colour(juce::Colour::fromRGBA(round(r* coef), round(g* coef), round(b* coef), round(a))).getARGB();
+    ::memcpy(&rgba[4 * i], &pix_col, 4 * sizeof(juce::uint8));
+    
     ptr++;
   }
 
   return true;
 }
 
-
 //-----------------------------------------------------------------------------
 // Calcul de l'estompage
 //-----------------------------------------------------------------------------
-bool DtmShader::ConvertArea(float* area, juce::uint32 w, juce::uint32 h, juce::uint8* rgb)
-{
-  EstompLine(area, area, &area[w], w, rgb, 0);
-  for (juce::uint32 i = 1; i < h - 1; i++) {
-    EstompLine(&area[(i - 1) * w], &area[i * w], &area[(i + 1) * w], w, &rgb[i * w * 3L], i);
-  }
-  EstompLine(&area[(h - 2) * w], &area[(h - 1) * w], &area[(h - 1) * w], w, &rgb[(h - 1) * w * 3L], h - 1);
-  return true;
-}
-
 bool DtmShader::ConvertImage(juce::Image* rawImage, juce::Image* rgbImage)
 {
   if ((rawImage->getWidth() != rgbImage->getWidth()) || (rawImage->getHeight() != rgbImage->getHeight()))
     return false;
   if (rawImage->getFormat() != juce::Image::PixelFormat::ARGB)
     return false;
-  if (rgbImage->getFormat() != juce::Image::PixelFormat::RGB)
+  if (rgbImage->getFormat() != juce::Image::PixelFormat::ARGB)
     return false;
   int w = rawImage->getWidth(), h = rawImage->getHeight();
 

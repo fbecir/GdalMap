@@ -42,13 +42,13 @@ bool MapThread::AllocPoints(int numPt)
 	return true;
 }
 
-void MapThread::SetDimension(int w, int h)
+void MapThread::SetDimension(const int& w, const int& h)
 {
 	if ((w != m_Vector.getWidth()) || (h != m_Vector.getHeight())) {
 		m_Vector = juce::Image(juce::Image::PixelFormat::ARGB, w, h, true);
 		m_Raster = juce::Image(juce::Image::PixelFormat::RGB, w, h, true);
 		m_Overlay = juce::Image(juce::Image::PixelFormat::ARGB, w, h, true);
-		m_Dtm = juce::Image(juce::Image::PixelFormat::RGB, w, h, true);
+		m_Dtm = juce::Image(juce::Image::PixelFormat::ARGB, w, h, true);
 		m_RawDtm = juce::Image(juce::Image::PixelFormat::ARGB, w, h, true);
 		m_bRasterDone = false;
 	}
@@ -60,26 +60,51 @@ void MapThread::SetUpdate(bool overlay, bool raster, bool dtm, bool vector)
 	m_bVector = vector;
 	m_bOverlay = overlay;
 	m_bDtm = dtm;
-	if (raster) {
+}
+
+void MapThread::PrepareImages(bool totalUpdate, int dX, int dY)
+{
+	if (m_bRaster) {
 		m_Raster.clear(m_Raster.getBounds());
 		m_bRasterDone = false;
 	}
-	if (dtm) {
+	if (m_bDtm) {
 		m_Dtm.clear(m_Dtm.getBounds());
 		m_RawDtm.clear(m_RawDtm.getBounds());
 		m_bRasterDone = false;
 	}
-	if (vector)
-		m_Vector.clear(m_Vector.getBounds());
-	if (overlay)
+	if (m_bOverlay)
 		m_Overlay.clear(m_Overlay.getBounds());
+
+	if (m_bVector) {
+		m_ClipVector = juce::Rectangle<int>();
+		if (totalUpdate)
+			m_Vector.clear(m_Vector.getBounds());
+		else {
+			juce::Image tmpImage = juce::Image(juce::Image::PixelFormat::ARGB, m_Vector.getWidth(), m_Vector.getHeight(), true);
+			juce::Graphics g(tmpImage);
+			g.drawImageAt(m_Vector, dX, dY);
+			m_Vector = tmpImage.createCopy();
+			m_ClipVector = juce::Rectangle<int>(dX, dY, m_Vector.getWidth(), m_Vector.getHeight());
+		}
+	}
 }
 
-void MapThread::SetEnvelope(const double& x0, const double& y0, const double& x1, const double& y1)
+void MapThread::SetWorld(const double& X0, const double& Y0, const double& scale, const int& W, const int& H, bool force_vector)
 {
+	bool totalUpdate = force_vector;
+	if (scale != m_dScale) totalUpdate = true;
+	if ((W != m_Vector.getWidth())||(H != m_Vector.getHeight())) totalUpdate = true;
+	int dX = round((m_dX0 - X0) / m_dScale), dY = round((Y0 - m_dY0) / m_dScale);
+	PrepareImages(totalUpdate, dX, dY);
+	
+	m_dX0 = X0;
+	m_dY0 = Y0; 
+	m_dScale = scale;
+	SetDimension(W, H);
 	m_Env = OGREnvelope();
-	m_Env.Merge(x0, y0);
-	m_Env.Merge(x1, y1);
+	m_Env.Merge(m_dX0, m_dY0);
+	m_Env.Merge(m_dX0 + W * m_dScale, m_dY0 - H * m_dScale);
 }
 
 void MapThread::run()
@@ -101,20 +126,23 @@ void MapThread::run()
 	// Affichage des couches MNT
 	if (m_bDtm) {
 		m_bRasterDone = false;
+		bool flag = false;
 		for (int i = 0; i < m_Base->GetDtmLayerCount(); i++) {
 			GeoBase::RasterLayer* poLayer = m_Base->GetDtmLayer(i);
 			if (poLayer == nullptr)
 				continue;
 			if (poLayer->Visible)
-				DrawLayer(poLayer, true);
+				flag |= DrawLayer(poLayer, true);
 		}
-		DtmShader shader(m_dScale);
-		shader.ConvertImage(&m_RawDtm, &m_Dtm);
+		if (flag) {
+			DtmShader shader(m_dScale);
+			shader.ConvertImage(&m_RawDtm, &m_Dtm);
+		}
 	}
 	m_bRasterDone = true;
 	// Affichage des couches vectorielles
 	if (m_bVector) {
-		m_Vector.clear(m_Vector.getBounds());
+		//m_Vector.clear(m_Vector.getBounds());
 		for (int i = 0; i < m_Base->GetVectorLayerCount(); i++) {
 			GeoBase::VectorLayer* poLayer = m_Base->GetVectorLayer(i);
 			if (poLayer == nullptr)
@@ -137,6 +165,7 @@ bool MapThread::Draw(juce::Graphics& g, int x0, int y0)
 		return false;
 	g.setOpacity(1.f);
 	g.drawImageAt(m_Raster, x0, y0);
+	//g.setOpacity(0.5f);
 	g.drawImageAt(m_Dtm, x0, y0);
 	g.drawImageAt(m_Vector, x0, y0);
 	g.drawImageAt(m_Overlay, x0, y0);
@@ -158,6 +187,7 @@ void MapThread::DrawLayer(GeoBase::VectorLayer* poLayer)
 		if (!mml.lockWasGained())  // if something is trying to kill this job, the lock
 			return;
 		juce::Graphics g(m_Vector);
+		g.excludeClipRegion(m_ClipVector);
 
 		for (int i = 0; i < 100; i++) {
 			if (threadShouldExit())
@@ -174,15 +204,19 @@ void MapThread::DrawLayer(GeoBase::VectorLayer* poLayer)
 			OGRGeometry* poGeom = poFeature->GetGeometryRef();
 			poGeom->transform(poTransfo);
 			poGeom->getEnvelope(&env);
-			if ((fabs(env.MaxX - env.MinX)/m_dScale < 2) && (fabs(env.MaxX - env.MinX)/m_dScale < 2) && (poGeom->getDimension() > 0)) {
-				g.drawLine((env.MinX-m_dX0)/m_dScale, (m_dY0-env.MinY)/m_dScale, (env.MaxX-m_dX0)/m_dScale, (m_dY0-env.MaxY)/m_dScale, 3.);
-			}
-			else {
-				DrawGeometry(poGeom);
-				g.strokePath(m_Path, juce::PathStrokeType(poLayer->m_Repres.PenSize, juce::PathStrokeType::beveled));
-				if (m_bFill) {
-					g.setFillType(juce::FillType(juce::Colour(poLayer->m_Repres.FillColor)));
-					g.fillPath(m_Path);
+			juce::Rectangle<int> frame = juce::Rectangle<int>(round((env.MinX - m_dX0) / m_dScale), round((m_dY0 - env.MaxY) / m_dScale),
+				round((env.MaxX - env.MinX) / m_dScale), round((env.MaxY - env.MinY) / m_dScale));
+			if (!m_ClipVector.contains(frame)) {
+				if ((frame.getWidth() < 2) && (frame.getHeight() < 2) && (poGeom->getDimension() > 0)) {
+					g.drawRect(frame, 2.);
+				}
+				else {
+					DrawGeometry(poGeom);
+					g.strokePath(m_Path, juce::PathStrokeType(poLayer->m_Repres.PenSize, juce::PathStrokeType::beveled));
+					if (m_bFill) {
+						g.setFillType(juce::FillType(juce::Colour(poLayer->m_Repres.FillColor)));
+						g.fillPath(m_Path);
+					}
 				}
 			}
 
@@ -309,7 +343,7 @@ void MapThread::DrawSelection()
 	if (!mml.lockWasGained())
 		return;
 	juce::Graphics g(m_Overlay);
-	g.setColour(juce::Colours::black);
+	g.setColour(juce::Colours::pink);
 	OGREnvelope env;
 	for (size_t i = 0; i < m_Base->GetSelectionCount(); i++) {
 		m_Path.clear();
@@ -333,12 +367,14 @@ void MapThread::DrawSelection()
 			juce::Path::Iterator iter(m_Path);
 			int numPoint = 0;
 			bool needText = true;
+			float dim = std::min<float>(std::max<float>((float)(4.f / m_dScale), 2.f), 5.f);
 			if ((fabs(env.MaxX - env.MinX) / m_dScale < 100) && (fabs(env.MaxX - env.MinX) / m_dScale < 100) && (poGeom->getDimension() > 0))
 				needText = false;
 			while (iter.next()) {
-				g.drawRect(iter.x1 - 2, iter.y1 - 2, 4.f, 4.f);
+				g.drawRect(iter.x1 - dim, iter.y1 - dim, 2.f * dim, 2.f * dim, 2.f);
 				if (needText)
-					g.drawSingleLineText(juce::String(numPoint), iter.x1 + 5, iter.y1);
+					if ((!m_bFill) || (iter.elementType != juce::Path::Iterator::startNewSubPath))
+						g.drawSingleLineText(juce::String(numPoint), iter.x1 + 5, iter.y1);
 				numPoint++;
 			}
 		}
@@ -352,19 +388,21 @@ void MapThread::DrawSelection()
 //==============================================================================
 // Dessin des layers raster
 //==============================================================================
-void MapThread::DrawLayer(GeoBase::RasterLayer* layer, bool dtm)
+bool MapThread::DrawLayer(GeoBase::RasterLayer* layer, bool dtm)
 {
 	if (!m_Env.Intersects(layer->Envelope()))
-		return ;
+		return false;
+	bool flag = false;
 	for (int i = 0; i < layer->GetRasterCount(); i++) {
 		if (m_Env.Intersects(layer->GetRasterEnvelope(i)))
 			if (dtm)
-				DrawDtm(layer->GetRasterDataset(i), layer->Opacity());
+				flag |= DrawDtm(layer->GetRasterDataset(i), layer->Opacity());
 			else
-				DrawRaster(layer->GetRasterDataset(i), layer->Opacity());
+				flag |= DrawRaster(layer->GetRasterDataset(i), layer->Opacity());
 		if (threadShouldExit())
-			return;
+			return false;
 	}
+	return flag;
 }
 
 //==============================================================================
@@ -414,17 +452,15 @@ bool MapThread::PrepareRasterDraw(GDALDataset* poDataset, int& U0, int& V0, int&
 //==============================================================================
 // Dessin d'un dataset raster
 //==============================================================================
-void MapThread::DrawRaster(GDALDataset* poDataset, float opacity)
+bool MapThread::DrawRaster(GDALDataset* poDataset, float opacity)
 {
 	int U0, V0, win, hin, R0, S0, wout, hout, nbBand;
 	if (!PrepareRasterDraw(poDataset, U0, V0, win, hin, nbBand, R0, S0, wout, hout))
-		return;
+		return false;
 	
-	//
-	juce::Image::PixelFormat format = juce::Image::PixelFormat::RGB;
 	//if (nbBand == 1)
 	//	format = juce::Image::PixelFormat::SingleChannel;
-	juce::Image tmpImage(format, wout, hout, true);
+	juce::Image tmpImage(juce::Image::PixelFormat::RGB, wout, hout, true);
 	juce::Image::BitmapData bitmap(tmpImage, juce::Image::BitmapData::readWrite);
 	for (int i = 0; i < nbBand; ++i) {
 		// Fetch the band
@@ -433,7 +469,7 @@ void MapThread::DrawRaster(GDALDataset* poDataset, float opacity)
 		CPLErr error = band->RasterIO(GF_Read, U0, V0, win, hin, &bitmap.data[nbBand - 1 - i], wout, hout, GDT_Byte,
 			bitmap.pixelStride, bitmap.lineStride);
 		if (error == CE_Failure)
-			return ;
+			return false;
 	}
 	if (nbBand == 1) {	// Cas des images avec palette de couleurs
 		GDALRasterBand* band = poDataset->GetRasterBand(1);
@@ -446,9 +482,9 @@ void MapThread::DrawRaster(GDALDataset* poDataset, float opacity)
 					entry = table->GetColorEntry(linePix[3 * j]);
 					if (entry == nullptr)
 						continue;
-					linePix[3 * j + 2] = entry->c1;	// Ordre BGR dans les images JUCE
-					linePix[3 * j + 1] = entry->c2;
-					linePix[3 * j] = entry->c3;
+					linePix[3 * j + 2] = (juce::uint8)entry->c1;	// Ordre BGR dans les images JUCE
+					linePix[3 * j + 1] = (juce::uint8)entry->c2;
+					linePix[3 * j] = (juce::uint8)entry->c3;
 				}
 			}
 		}
@@ -457,37 +493,46 @@ void MapThread::DrawRaster(GDALDataset* poDataset, float opacity)
 	g.setOpacity(opacity);
 	g.drawImageAt(tmpImage, R0, S0);
 	m_nNumObjects++;
+	return true;
 }
 
 //==============================================================================
 // Dessin d'un dataset raster sous forme MNT
 //==============================================================================
-void MapThread::DrawDtm(GDALDataset* poDataset, float opacity)
+bool MapThread::DrawDtm(GDALDataset* poDataset, float opacity)
 {
 	int U0, V0, win, hin, R0, S0, wout, hout, nbBand;
 	if (!PrepareRasterDraw(poDataset, U0, V0, win, hin, nbBand, R0, S0, wout, hout))
-		return;
+		return false;
 
-
-	juce::Image::PixelFormat format = juce::Image::PixelFormat::ARGB;
-	//if (nbBand == 1)
-	//	format = juce::Image::PixelFormat::SingleChannel;
-	juce::Image tmpImage(format, wout, hout, true);
+	juce::Image tmpImage(m_RawDtm.getFormat(), wout, hout, true);
 	juce::Image::BitmapData bitmap(tmpImage, juce::Image::BitmapData::readWrite);
-	
 	// On recupere uniquement la premiere bande
 	GDALRasterBand* band = poDataset->GetRasterBand(1); // Bandes numerotees de 1 à N
 	// Lecture des donnees
-	GDALDataType type = band->GetRasterDataType();
-
-	CPLErr error = band->RasterIO(GF_Read, U0, V0, win, hin, &bitmap.data[0], wout, hout, type,
-			bitmap.pixelStride, bitmap.lineStride);
+	GDALRasterIOExtraArg psExtraArg;
+	INIT_RASTERIO_EXTRA_ARG(psExtraArg);
+	psExtraArg.eResampleAlg = GDALRIOResampleAlg::GRIORA_Bilinear;
+	CPLErr error = band->RasterIO(GF_Read, U0, V0, win, hin, &bitmap.data[0], wout, hout, GDT_Float32,
+			bitmap.pixelStride, bitmap.lineStride, &psExtraArg);
 	if (error == CE_Failure)
-		return;
-	float* ptr = (float*)bitmap.data;
-	float z = ptr[0];
+		return false;
 	juce::Graphics g(m_RawDtm);
 	g.setOpacity(1.0);
 	g.drawImageAt(tmpImage, R0, S0);
 	m_nNumObjects++;
+	return true;
+}
+
+float MapThread::GetZ(int u, int v)
+{ 
+	if ((u < 0) || (v < 0))
+		return 0.;
+	if ((u >= m_RawDtm.getWidth())||(v >= m_RawDtm.getHeight()))
+		return 0.;
+	juce::Image::BitmapData bitmap(m_RawDtm, juce::Image::BitmapData::readOnly);
+	float* z = (float*)&bitmap.data[v * bitmap.lineStride + u * bitmap.pixelStride];
+	if (z == nullptr)
+		return 0.;
+	return *z;
 }

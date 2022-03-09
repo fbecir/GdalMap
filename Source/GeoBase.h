@@ -32,8 +32,12 @@ public:
 	OGRSpatialReference* SpatialRef() { return &m_SpatialRef; }
 	int GetVectorLayerCount() { return (int)m_VLayers.size(); }
 	VectorLayer* GetVectorLayer(int i) { if (i < m_VLayers.size()) return m_VLayers[i]; return nullptr; }
+
+	// Change l'ordre des layers
 	bool ReorderVectorLayer(int oldPosition, int newPosition);
 	bool ReorderRasterLayer(int oldPosition, int newPosition);
+	bool ReorderDtmLayer(int oldPosition, int newPosition);
+
 	OGRLayer* GetOGRLayer(int i) { if (i < m_VLayers.size()) return m_VLayers[i]->GetOGRLayer(); return nullptr; }
 	int GetRasterLayerCount() { return (int)m_RLayers.size(); }
 	RasterLayer* GetRasterLayer(int i) { if (i < m_RLayers.size()) return m_RLayers[i]; return nullptr; }
@@ -98,11 +102,13 @@ public:
 	protected:
 		GDALDataset*		m_Dataset;
 		OGREnvelope			m_Env;
+		double					m_GSD;
 	public:
-		Raster() { m_Dataset = nullptr; }
+		Raster() { m_Dataset = nullptr; m_GSD = 0.; }
 		bool AddDataset(GDALDataset* poDataset);
 		OGREnvelope Envelope() { return m_Env; }
 		GDALDataset* Dataset() { return m_Dataset; }
+		double GSD() { return m_GSD; }
 	};
 
 	class RasterLayer {
@@ -122,6 +128,7 @@ public:
 		int GetRasterCount() { return (int)m_Raster.size(); }
 		GDALDataset* GetRasterDataset(int i) { if (i < m_Raster.size()) return m_Raster[i].Dataset(); return nullptr; }
 		OGREnvelope GetRasterEnvelope(int i) { if (i < m_Raster.size()) return m_Raster[i].Envelope(); return OGREnvelope(); }
+		double GSD();
 
 		bool				Visible;
 	};
