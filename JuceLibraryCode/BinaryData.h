@@ -8,11 +8,20 @@
 
 namespace BinaryData
 {
+    extern const char*   GdalMap_png;
+    const int            GdalMap_pngSize = 14952;
+
+    extern const char*   NoView_png;
+    const int            NoView_pngSize = 1295;
+
+    extern const char*   View_png;
+    const int            View_pngSize = 1279;
+
     extern const char*   Translation_fr_txt;
-    const int            Translation_fr_txtSize = 1012;
+    const int            Translation_fr_txtSize = 1286;
 
     // Number of elements in the namedResourceList and originalFileNames arrays.
-    const int namedResourceListSize = 1;
+    const int namedResourceListSize = 4;
 
     // Points to the start of a list of resource names.
     extern const char* namedResourceList[];

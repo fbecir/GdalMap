@@ -66,6 +66,7 @@ public:
 		GIntBig				m_Id;
 		int						m_IdLayer;
 	public:
+		Feature() { m_Id = -1; m_IdLayer = -1; }
 		Feature(GIntBig id, OGREnvelope env, int idLayer) { m_Id = id; m_Env = env; m_IdLayer = idLayer; }
 		bool Intersect(OGREnvelope env) { return m_Env.Intersects(env); }
 		GIntBig Id() { return m_Id; }

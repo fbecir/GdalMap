@@ -111,7 +111,9 @@ bool GeoBase::OpenRasterMultiDataset(const char* filename)
 
 	CPLStringList options;
 	options.AddNameValue("EXTENDBEYONDDATELINE", "YES");
-	options.AddNameValue("EXTENT_METHOD", "MOST_PRECISE_TILE_MATRIX");
+	//options.AddNameValue("EXTENT_METHOD", "MOST_PRECISE_TILE_MATRIX");
+	options.AddNameValue("CLIP_EXTENT_WITH_MOST_PRECISE_TILE_MATRIX ", "NO");
+	options.AddNameValue("CLIP_EXTENT_WITH_MOST_PRECISE_TILE_MATRIX_LIMITS", "NO");
 	//options.AddNameValue("ZOOM_LEVEL", "19");
 
 	for (int i = 0; i < CSLCount(papszSubdatasets); i++) {

@@ -41,6 +41,11 @@ MainComponent::MainComponent()
 	addAndMakeVisible(m_SelectionViewer.get());
 	m_SelectionViewer.get()->SetBase(&m_Base);
 	m_SelectionViewer.get()->SetActionListener(this);
+
+	m_SelTreeViewer.reset(new SelTreeViewer);
+	addAndMakeVisible(m_SelTreeViewer.get());
+	m_SelTreeViewer.get()->SetBase(&m_Base);
+	m_SelTreeViewer.get()->addActionListener(this);
 	
 	m_FeatureViewer.reset(new FeatureViewer("Feature", juce::Colours::grey, juce::DocumentWindow::allButtons));
 	m_FeatureViewer.get()->setVisible(false);
@@ -51,10 +56,12 @@ MainComponent::MainComponent()
 	m_Panel.get()->addPanel(-1, m_RasterLayerViewer.get(), false);
 	m_Panel.get()->addPanel(-1, m_DtmViewer.get(), false);
 	m_Panel.get()->addPanel(-1, m_SelectionViewer.get(), false);
+	m_Panel.get()->addPanel(-1, m_SelTreeViewer.get(), false);
 	m_Panel.get()->setCustomPanelHeader(m_Panel.get()->getPanel(0), new juce::TextButton(juce::translate("Layers")), true);
 	m_Panel.get()->setCustomPanelHeader(m_Panel.get()->getPanel(1), new juce::TextButton(juce::translate("Images")), true);
 	m_Panel.get()->setCustomPanelHeader(m_Panel.get()->getPanel(2), new juce::TextButton(juce::translate("DTM")), true);
 	m_Panel.get()->setCustomPanelHeader(m_Panel.get()->getPanel(3), new juce::TextButton(juce::translate("Selection")), true);
+	m_Panel.get()->setCustomPanelHeader(m_Panel.get()->getPanel(4), new juce::TextButton(juce::translate("SelectionTree")), true);
 
 	// set up the layout and resizer bars..
 	m_VerticalLayout.setItemLayout(0, -0.2, -1.0, -0.65); 
@@ -371,16 +378,17 @@ void MainComponent::actionListenerCallback(const juce::String& message)
 		return;
 	}
 	if (message == "UpdateRaster") {
-		m_MapView.get()->RenderMap(true, true, false, false);
+		m_MapView.get()->RenderMap(false, true, false, false);
 		return;
 	}
 	if (message == "UpdateDtm") {
-		m_MapView.get()->RenderMap(true, false, true, false);
+		m_MapView.get()->RenderMap(false, false, true, false);
 		return;
 	}
 
 	if (message == "UpdateSelectFeatures") {
 		m_SelectionViewer.get()->SetBase(&m_Base);
+		m_SelTreeViewer.get()->SetBase(&m_Base);
 		if (m_Base.GetSelectionCount() >= 1) {
 			GeoBase::Feature geoFeature = m_Base.GetSelection(m_Base.GetSelectionCount()-1);
 			m_Base.SelectFeatureFields(geoFeature.IdLayer(), geoFeature.Id());
@@ -542,6 +550,7 @@ bool MainComponent::AddVectorLayer()
 			return false;
 	}
 	m_MapView.get()->SetFrame(m_Base.GetEnvelope());
+	m_MapView.get()->RenderMap(true, false, false, true, true);
 	m_LayerViewer.get()->SetBase(&m_Base);
 
 	return true;

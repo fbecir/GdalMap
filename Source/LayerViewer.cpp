@@ -204,8 +204,10 @@ void LayerViewerModel::sliderValueChanged(juce::Slider* slider)
 
 	// Choix d'une epaisseur
 	if (m_ActiveColumn == Column::PenWidth) {
-		geoLayer->m_Repres.PenSize = (int)slider->getValue();
-		sendActionMessage("UpdateVector");
+		if (geoLayer->m_Repres.PenSize != (int)slider->getValue()) {
+			geoLayer->m_Repres.PenSize = (int)slider->getValue();
+			sendActionMessage("UpdateVector");
+		}
 	}
 }
 

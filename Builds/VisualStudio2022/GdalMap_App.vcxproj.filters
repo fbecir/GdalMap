@@ -2,6 +2,9 @@
 
 <Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <Filter Include="GdalMap\Images">
+      <UniqueIdentifier>{26693A29-FC2A-1B9C-C62E-1F5D02483DAA}</UniqueIdentifier>
+    </Filter>
     <Filter Include="GdalMap\Source">
       <UniqueIdentifier>{CBBA6DF4-A4C5-0A07-C453-36C89F143479}</UniqueIdentifier>
     </Filter>
@@ -232,6 +235,9 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\Source\SelTreeViewer.cpp">
+      <Filter>GdalMap\Source</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\Source\DtmViewer.cpp">
       <Filter>GdalMap\Source</Filter>
     </ClCompile>
@@ -1240,6 +1246,9 @@
     <ClCompile Include="..\..\..\..\JUCE\modules\juce_gui_basics\misc\juce_DropShadower.cpp">
       <Filter>JUCE Modules\juce_gui_basics\misc</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\JUCE\modules\juce_gui_basics\misc\juce_FocusOutline.cpp">
+      <Filter>JUCE Modules\juce_gui_basics\misc</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\..\JUCE\modules\juce_gui_basics\misc\juce_JUCESplashScreen.cpp">
       <Filter>JUCE Modules\juce_gui_basics\misc</Filter>
     </ClCompile>
@@ -1590,6 +1599,9 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\Source\SelTreeViewer.h">
+      <Filter>GdalMap\Source</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\DtmViewer.h">
       <Filter>GdalMap\Source</Filter>
     </ClInclude>
@@ -2625,6 +2637,9 @@
     <ClInclude Include="..\..\..\..\JUCE\modules\juce_gui_basics\misc\juce_DropShadower.h">
       <Filter>JUCE Modules\juce_gui_basics\misc</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\JUCE\modules\juce_gui_basics\misc\juce_FocusOutline.h">
+      <Filter>JUCE Modules\juce_gui_basics\misc</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\..\JUCE\modules\juce_gui_basics\misc\juce_JUCESplashScreen.h">
       <Filter>JUCE Modules\juce_gui_basics\misc</Filter>
     </ClInclude>
@@ -2658,6 +2673,9 @@
     <ClInclude Include="..\..\..\..\JUCE\modules\juce_gui_basics\mouse\juce_MouseListener.h">
       <Filter>JUCE Modules\juce_gui_basics\mouse</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\JUCE\modules\juce_gui_basics\mouse\juce_PointerState.h">
+      <Filter>JUCE Modules\juce_gui_basics\mouse</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\..\JUCE\modules\juce_gui_basics\mouse\juce_SelectedItemSet.h">
       <Filter>JUCE Modules\juce_gui_basics\mouse</Filter>
     </ClInclude>
@@ -2671,6 +2689,9 @@
       <Filter>JUCE Modules\juce_gui_basics\native\accessibility</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\JUCE\modules\juce_gui_basics\native\accessibility\juce_win32_AccessibilityElement.h">
+      <Filter>JUCE Modules\juce_gui_basics\native\accessibility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\JUCE\modules\juce_gui_basics\native\accessibility\juce_win32_ComInterfaces.h">
       <Filter>JUCE Modules\juce_gui_basics\native\accessibility</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\JUCE\modules\juce_gui_basics\native\accessibility\juce_win32_UIAExpandCollapseProvider.h">
@@ -2937,6 +2958,9 @@
     <ClInclude Include="..\..\..\..\JUCE\modules\juce_gui_extra\native\juce_mac_CarbonViewWrapperComponent.h">
       <Filter>JUCE Modules\juce_gui_extra\native</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\JUCE\modules\juce_gui_extra\native\juce_mac_NSViewFrameWatcher.h">
+      <Filter>JUCE Modules\juce_gui_extra\native</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\..\JUCE\modules\juce_gui_extra\juce_gui_extra.h">
       <Filter>JUCE Modules\juce_gui_extra</Filter>
     </ClInclude>
@@ -2948,6 +2972,15 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\Images\GdalMap.png">
+      <Filter>GdalMap\Images</Filter>
+    </None>
+    <None Include="..\..\Images\NoView.png">
+      <Filter>GdalMap\Images</Filter>
+    </None>
+    <None Include="..\..\Images\View.png">
+      <Filter>GdalMap\Images</Filter>
+    </None>
     <None Include="..\..\Source\Translation_fr.txt">
       <Filter>GdalMap\Source</Filter>
     </None>
@@ -2959,6 +2992,9 @@
     </None>
     <None Include="..\..\..\..\JUCE\modules\juce_graphics\image_formats\pnglib\libpng_readme.txt">
       <Filter>JUCE Modules\juce_graphics\image_formats\pnglib</Filter>
+    </None>
+    <None Include=".\icon.ico">
+      <Filter>JUCE Library Code</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

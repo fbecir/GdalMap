@@ -5,7 +5,15 @@
               defines="JUCE_MODAL_LOOPS_PERMITTED=1" bundleIdentifier="fr.ign.gdalmap"
               companyName="IGN">
   <MAINGROUP id="FpGinB" name="GdalMap">
+    <GROUP id="{5E75B814-C266-71EB-DFE4-88C9618EFDB2}" name="Images">
+      <FILE id="eefHTh" name="GdalMap.png" compile="0" resource="1" file="Images/GdalMap.png"/>
+      <FILE id="IKxepv" name="NoView.png" compile="0" resource="1" file="Images/NoView.png"/>
+      <FILE id="Wf3Hwj" name="View.png" compile="0" resource="1" file="Images/View.png"/>
+    </GROUP>
     <GROUP id="{AD36F250-69FA-EB93-96A6-624AD0FAFCCF}" name="Source">
+      <FILE id="EcRdNE" name="SelTreeViewer.cpp" compile="1" resource="0"
+            file="Source/SelTreeViewer.cpp"/>
+      <FILE id="Zy678k" name="SelTreeViewer.h" compile="0" resource="0" file="Source/SelTreeViewer.h"/>
       <FILE id="VS0ZP6" name="DtmViewer.cpp" compile="1" resource="0" file="Source/DtmViewer.cpp"/>
       <FILE id="t91erj" name="DtmViewer.h" compile="0" resource="0" file="Source/DtmViewer.h"/>
       <FILE id="EScaiL" name="DtmShader.h" compile="0" resource="0" file="Source/DtmShader.h"/>
@@ -55,7 +63,8 @@
       </MODULEPATHS>
     </LINUX_MAKE>
     <VS2022 targetFolder="Builds/VisualStudio2022" externalLibraries="gdal_i.lib"
-            userNotes="Environment :&#10;PATH=D:\Anaconda3\envs\gdal\Library\bin;%PATH%&#10;PROJ_LIB=D:\Anaconda3\envs\gdal\Library\share\proj">
+            userNotes="Environment :&#10;PATH=D:\Anaconda3\envs\gdal\Library\bin;%PATH%&#10;PROJ_LIB=D:\Anaconda3\envs\gdal\Library\share\proj"
+            bigIcon="eefHTh" smallIcon="eefHTh">
       <CONFIGURATIONS>
         <CONFIGURATION isDebug="1" name="Debug" targetName="GdalMap" headerPath="D:\Anaconda3\envs\gdal\Library\include;"
                        libraryPath="D:\Anaconda3\envs\gdal\Library\lib;" postbuildCommand="MKDIR .\x64\Debug\App\Images&#10;COPY ..\..\Images\*.* .\x64\Debug\App\Images&#10;MKDIR .\x64\Debug\App\Data&#10;COPY ..\..\Data\*.* .\x64\Debug\App\Data"/>

@@ -204,8 +204,8 @@ void MapThread::DrawLayer(GeoBase::VectorLayer* poLayer)
 			OGRGeometry* poGeom = poFeature->GetGeometryRef();
 			poGeom->transform(poTransfo);
 			poGeom->getEnvelope(&env);
-			juce::Rectangle<int> frame = juce::Rectangle<int>(round((env.MinX - m_dX0) / m_dScale), round((m_dY0 - env.MaxY) / m_dScale),
-				round((env.MaxX - env.MinX) / m_dScale), round((env.MaxY - env.MinY) / m_dScale));
+			juce::Rectangle<int> frame = juce::Rectangle<int>((int)round((env.MinX - m_dX0) / m_dScale), (int)round((m_dY0 - env.MaxY) / m_dScale),
+				(int)round((env.MaxX - env.MinX) / m_dScale), (int)round((env.MaxY - env.MinY) / m_dScale));
 			if (!m_ClipVector.contains(frame)) {
 				if ((frame.getWidth() < 2) && (frame.getHeight() < 2) && (poGeom->getDimension() > 0)) {
 					g.drawRect(frame, 2.);

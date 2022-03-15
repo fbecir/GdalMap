@@ -17,7 +17,7 @@
 #include "FeatureViewer.h"
 #include "RasterLayerViewer.h"
 #include "DtmViewer.h"
-
+#include "SelTreeViewer.h"
 
 //==============================================================================
 /*
@@ -83,6 +83,7 @@ private:
   std::unique_ptr<LayerViewer> m_LayerViewer;
   std::unique_ptr<RasterLayerViewer> m_RasterLayerViewer;
   std::unique_ptr<SelectionViewer> m_SelectionViewer;
+  std::unique_ptr<SelTreeViewer> m_SelTreeViewer;
   std::unique_ptr<FeatureViewer> m_FeatureViewer;
   std::unique_ptr<DtmViewer> m_DtmViewer;
   std::unique_ptr<MapView> m_MapView;
