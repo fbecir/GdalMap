@@ -345,44 +345,66 @@ void MapThread::DrawSelection()
 	juce::Graphics g(m_Overlay);
 	g.setColour(juce::Colours::pink);
 	OGREnvelope env;
+	OGRLayer* lastLayer = nullptr;
+	OGRCoordinateTransformation* poTransfo = nullptr;
 	for (size_t i = 0; i < m_Base->GetSelectionCount(); i++) {
 		m_Path.clear();
 		GeoBase::Feature feature = m_Base->GetSelection(i);
 		OGRLayer* poLayer = m_Base->GetOGRLayer(feature.IdLayer());
 		if (poLayer == nullptr)
 			continue;
+		if (lastLayer != poLayer) {
+			lastLayer = poLayer;
+			delete poTransfo;
+			poTransfo = OGRCreateCoordinateTransformation(poLayer->GetSpatialRef(), &m_SpatialRef);
+			if (poTransfo == nullptr) {
+				lastLayer = nullptr;
+				continue;
+			}
+		}
 		OGRFeature* poFeature = poLayer->GetFeature(feature.Id());
 		if (poFeature == nullptr)
 			continue;	
-		OGRCoordinateTransformation* poTransfo = OGRCreateCoordinateTransformation(poLayer->GetSpatialRef(), &m_SpatialRef);
-		if (poTransfo == nullptr) {
-			OGRFeature::DestroyFeature(poFeature);
-			continue;
-		}
 		OGRGeometry* poGeom = poFeature->GetGeometryRef();
 		poGeom->transform(poTransfo);
 		poGeom->getEnvelope(&env);
 		if (m_Env.Intersects(env)) {
-			DrawGeometry(poGeom);
-			juce::Path::Iterator iter(m_Path);
-			int numPoint = 0;
-			bool needText = true;
-			float dim = std::min<float>(std::max<float>((float)(4.f / m_dScale), 2.f), 5.f);
-			if ((fabs(env.MaxX - env.MinX) / m_dScale < 100) && (fabs(env.MaxX - env.MinX) / m_dScale < 100) && (poGeom->getDimension() > 0))
-				needText = false;
-			while (iter.next()) {
-				g.drawRect(iter.x1 - dim, iter.y1 - dim, 2.f * dim, 2.f * dim, 2.f);
-				if (needText)
-					if ((!m_bFill) || (iter.elementType != juce::Path::Iterator::startNewSubPath))
-						g.drawSingleLineText(juce::String(numPoint), iter.x1 + 5, iter.y1);
-				numPoint++;
+			int W = (int)round(env.MaxX - env.MinX) / m_dScale;
+			int H = (int)round(env.MaxY - env.MinY) / m_dScale;
+
+			if ((W < 25) && (H < 25)) {
+				g.setColour(juce::Colours::aqua);
+				g.drawRect((int)floor((env.MinX - m_dX0) / m_dScale)-3, (int)floor((m_dY0 - env.MaxY) / m_dScale)-3, W+6, H+6);
+				g.setColour(juce::Colours::darkorchid);
+				g.drawRect((int)floor((env.MinX - m_dX0) / m_dScale) - 2, (int)floor((m_dY0 - env.MaxY) / m_dScale) - 2, W + 4, H + 4);
+			}
+			else {
+				DrawGeometry(poGeom);
+				juce::Path::Iterator iter(m_Path);
+				int numPoint = 0;
+				bool needText = true;
+				float dim = std::min<float>(std::max<float>((float)(4.f / m_dScale), 2.f), 4.f);
+				if ((W < 100) && (H < 100) && (poGeom->getDimension() > 0))
+					needText = false;
+				while (iter.next()) {
+					g.setColour(juce::Colours::aqua);
+					g.drawRect(iter.x1 - dim, iter.y1 - dim, 2.f * dim, 2.f * dim);
+					g.setColour(juce::Colours::darkorchid);
+					g.drawRect(iter.x1 - dim + 1, iter.y1 - dim + 1, 2.f * dim - 2, 2.f * dim - 2);
+					if (needText)
+						if ((!m_bFill) || (iter.elementType != juce::Path::Iterator::startNewSubPath))
+							g.drawSingleLineText(juce::String(numPoint), iter.x1 + 5, iter.y1);
+					numPoint++;
+				}
 			}
 		}
-		delete poTransfo;
 		OGRFeature::DestroyFeature(poFeature);
-		if (threadShouldExit())
+		if (threadShouldExit()) {
+			delete poTransfo;
 			return;
+		}
 	}
+	delete poTransfo;
 }
 
 //==============================================================================

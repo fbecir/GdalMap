@@ -54,7 +54,7 @@ bool GeoBase::OpenVectorDataset(const char* filename)
 	for (int i = 0; i < poDataset->GetLayerCount(); i++) {
 		if (poDataset->IsLayerPrivate(i))
 			continue;
-		VectorLayer* layer = new VectorLayer;
+		VectorLayer* layer = new VectorLayer(GetVectorLayerCount()+1);
 		if (layer == nullptr)
 			continue;
 		if (!layer->SetDataset(poDataset, i)) {
@@ -110,7 +110,7 @@ bool GeoBase::OpenRasterMultiDataset(const char* filename)
 	// The returned string list is owned by the object, and may change at any time
 
 	CPLStringList options;
-	options.AddNameValue("EXTENDBEYONDDATELINE", "YES");
+	//options.AddNameValue("EXTENDBEYONDDATELINE", "YES");
 	//options.AddNameValue("EXTENT_METHOD", "MOST_PRECISE_TILE_MATRIX");
 	options.AddNameValue("CLIP_EXTENT_WITH_MOST_PRECISE_TILE_MATRIX ", "NO");
 	options.AddNameValue("CLIP_EXTENT_WITH_MOST_PRECISE_TILE_MATRIX_LIMITS", "NO");
@@ -171,7 +171,7 @@ size_t GeoBase::SelectFeatures(const OGREnvelope& env, OGRSpatialReference* spat
 		do {
 			if (!poLayer->GetNextFeatureId(featureId, featureEnv))
 				break;
-			m_Selection.push_back(Feature(featureId, featureEnv, layerId));
+			m_Selection.push_back(Feature(featureId, featureEnv, poLayer->Id()));
 		} while (true);
 	}
 	return m_Selection.size();
@@ -268,11 +268,11 @@ OGREnvelope GeoBase::ConvertEnvelop(const OGREnvelope& env, OGRSpatialReference*
 //==============================================================================
 // Constructeur GeoLayer
 //==============================================================================
-GeoBase::VectorLayer::VectorLayer()
+GeoBase::VectorLayer::VectorLayer(int id)
 {
 	m_Dataset = nullptr;
 	m_OGRLayer = nullptr; 
-	m_Id = 0;
+	m_Id = id;
 	m_bTransactions = false;
 	m_nIndex = 0;
 	m_Repres.PenColor = 0xFF008800;

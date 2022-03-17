@@ -18,7 +18,7 @@ public:
 
   void SetBase(GeoBase* base) { clearSubItems(); m_Base = base; setOpen(true); }
 
-  bool mightContainSubItems() override;
+  bool mightContainSubItems() override { if (m_Base != nullptr) return true; return false; }
   void itemOpennessChanged(bool isNowOpen) override;
   void paintItem(juce::Graphics& g, int width, int height) override;
   void itemClicked(const juce::MouseEvent&) override;
@@ -34,7 +34,7 @@ private:
 class SelTreeViewer  : public juce::TreeView, public juce::ActionBroadcaster {
 public:
   SelTreeViewer();
-  ~SelTreeViewer() override;
+  ~SelTreeViewer() override { setRootItem(nullptr); }
 
   void SetBase(GeoBase* base);
 

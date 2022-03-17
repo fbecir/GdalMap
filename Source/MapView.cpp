@@ -209,6 +209,31 @@ void MapView::ZoomWorld()
 }
 
 //==============================================================================
+// Zoom au niveau le plus proche de la pyramide WMTS
+//==============================================================================
+void MapView::ZoomLevel()
+{
+	if (m_Base == nullptr)
+		return;
+	if (m_Base->GetRasterLayerCount() < 1)
+		return;
+	auto b = getLocalBounds();
+	double X = b.getWidth() / 2, Y = b.getHeight() / 2;
+	Pixel2Ground(X, Y);
+	double gsd = std::numeric_limits<double>::max();
+	for (int i = 0; i < m_Base->GetRasterLayerCount(); i++) {
+		gsd = std::min<double>(gsd, m_Base->GetRasterLayer(i)->GSD());
+	}
+	for (int i = 21; i >= 0; i--) {
+		if ((pow(2., i) * gsd) < m_dScale) {
+			m_dScale = gsd * pow(2., i);
+			break;
+		}
+	}
+	CenterView(X, Y);
+}
+
+//==============================================================================
 // Zoom sur une emprise
 //==============================================================================
 void MapView::ZoomEnvelope(const OGREnvelope& env, double buffer)

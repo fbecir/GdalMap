@@ -26,6 +26,7 @@ public:
   
   void SetFrame(OGREnvelope env);
   void ZoomWorld();
+  void ZoomLevel();
   void ZoomEnvelope(const OGREnvelope& env, double buffer = 0.);
   void CenterView(const double& X, const double& Y);
   void Pixel2Ground(double& X, double& Y);

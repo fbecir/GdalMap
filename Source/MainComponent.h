@@ -13,7 +13,6 @@
 #include "MapView.h"
 #include "GeoBase.h"
 #include "LayerViewer.h"
-#include "SelectionViewer.h"
 #include "FeatureViewer.h"
 #include "RasterLayerViewer.h"
 #include "DtmViewer.h"
@@ -44,9 +43,9 @@ public:
     menuAddRasterLayer,
     menuAddDtmLayer,
     menuZoomTotal,
+    menuZoomLevel,
     menuTest,
     menuShowSidePanel,
-    menuShowSelectionViewer,
     menuShowFeatureViewer,
     menuAddOSM,
     menuAddGeoportailOrthophoto,
@@ -82,7 +81,6 @@ private:
   std::unique_ptr<juce::MenuBarComponent> m_MenuBar;
   std::unique_ptr<LayerViewer> m_LayerViewer;
   std::unique_ptr<RasterLayerViewer> m_RasterLayerViewer;
-  std::unique_ptr<SelectionViewer> m_SelectionViewer;
   std::unique_ptr<SelTreeViewer> m_SelTreeViewer;
   std::unique_ptr<FeatureViewer> m_FeatureViewer;
   std::unique_ptr<DtmViewer> m_DtmViewer;

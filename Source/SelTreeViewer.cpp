@@ -8,17 +8,9 @@
 #include <JuceHeader.h>
 #include "SelTreeViewer.h"
 
-
-
-bool SelTreeItem::mightContainSubItems()
-{
-  if (m_Base != nullptr)
-    return true;
-  if (m_Feature.IdLayer() >= 0)
-    return true;
-  return false;
-}
-
+//==============================================================================
+// Ouverture / fermeture d'un SelTreeItem
+//==============================================================================
 void SelTreeItem::itemOpennessChanged(bool isNowOpen)
 {
   if (m_Base == nullptr)
@@ -44,6 +36,9 @@ void SelTreeItem::itemOpennessChanged(bool isNowOpen)
     clearSubItems();
 }
 
+//==============================================================================
+// Dessin d'un SelTreeItem
+//==============================================================================
 void SelTreeItem::paintItem(juce::Graphics& g, int width, int height)
 {
   g.setFont(15.0f);
@@ -64,6 +59,9 @@ void SelTreeItem::paintItem(juce::Graphics& g, int width, int height)
   g.drawText(text, 4 + width / 4, 0, 3 * width / 4 - 4, height, juce::Justification::centredLeft, true);
 }
 
+//==============================================================================
+// Clic simple
+//==============================================================================
 void SelTreeItem::itemClicked(const juce::MouseEvent&)
 {
   if ((m_Feature.IdLayer() >= 0) && (m_Base != nullptr)) {
@@ -72,6 +70,9 @@ void SelTreeItem::itemClicked(const juce::MouseEvent&)
   }
 }
 
+//==============================================================================
+// Double-clic : deplacement sur l'objet
+//==============================================================================
 void SelTreeItem::itemDoubleClicked(const juce::MouseEvent&)
 {
   if ((m_Feature.IdLayer() >= 0) && (m_Base != nullptr)) {
@@ -87,24 +88,20 @@ void SelTreeItem::itemDoubleClicked(const juce::MouseEvent&)
 }
 
 //==============================================================================
+// Constructeur
+//==============================================================================
 SelTreeViewer::SelTreeViewer()
 {
-  // In your constructor, you should add any child components, and
-  // initialise any special settings that your component needs.
   m_rootItem.reset(new SelTreeItem);
   setRootItem(m_rootItem.get());
-
 }
 
-SelTreeViewer::~SelTreeViewer()
-{
-  setRootItem(nullptr);
-}
-
+//==============================================================================
+// Fixe la GeoBase
+//==============================================================================
 void SelTreeViewer::SetBase(GeoBase* base)
 {
   m_rootItem.get()->SetBase(base);
   repaint();
   setRootItemVisible(false);
-
 }

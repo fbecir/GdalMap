@@ -99,6 +99,7 @@ void RasterLayerViewerModel::cellClicked(int rowNumber, int columnId, const juce
 		opacitySelector->setTextBoxStyle(juce::Slider::TextBoxLeft, false, 80, 20);
 		opacitySelector->setSize(200, 50);
 		opacitySelector->addListener(this);
+		opacitySelector->setChangeNotificationOnlyOnRelease(true);
 		juce::CallOutBox::launchAsynchronously(std::move(opacitySelector), bounds, nullptr);
 		return;
 	}

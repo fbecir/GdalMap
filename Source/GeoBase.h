@@ -32,13 +32,14 @@ public:
 	OGRSpatialReference* SpatialRef() { return &m_SpatialRef; }
 	int GetVectorLayerCount() { return (int)m_VLayers.size(); }
 	VectorLayer* GetVectorLayer(int i) { if (i < m_VLayers.size()) return m_VLayers[i]; return nullptr; }
+	VectorLayer* GetVectorLayerId(int id) { for (int i = 0; i < m_VLayers.size(); i++) if (m_VLayers[i]->Id() == id) return m_VLayers[i]; return nullptr; }
 
 	// Change l'ordre des layers
 	bool ReorderVectorLayer(int oldPosition, int newPosition);
 	bool ReorderRasterLayer(int oldPosition, int newPosition);
 	bool ReorderDtmLayer(int oldPosition, int newPosition);
 
-	OGRLayer* GetOGRLayer(int i) { if (i < m_VLayers.size()) return m_VLayers[i]->GetOGRLayer(); return nullptr; }
+	OGRLayer* GetOGRLayer(int id) { VectorLayer* layer = GetVectorLayerId(id); if (layer != nullptr) return layer->GetOGRLayer(); return nullptr; }
 	int GetRasterLayerCount() { return (int)m_RLayers.size(); }
 	RasterLayer* GetRasterLayer(int i) { if (i < m_RLayers.size()) return m_RLayers[i]; return nullptr; }
 	int GetDtmLayerCount() { return (int)m_ZLayers.size(); }
@@ -85,7 +86,8 @@ public:
 		size_t				m_nIndex;
 		std::vector<Feature> m_T;
 	public:
-		VectorLayer();
+		VectorLayer(int id);
+		inline int Id() { return m_Id; }
 		bool SetDataset(GDALDataset* poDataset, int id);
 		OGREnvelope Envelope() { return m_Env; }
 		OGRSpatialReference* SpatialRef() { if (m_OGRLayer != nullptr) return m_OGRLayer->GetSpatialRef(); return nullptr; }

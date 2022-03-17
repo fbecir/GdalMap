@@ -37,11 +37,6 @@ MainComponent::MainComponent()
 	m_DtmViewer.get()->SetBase(&m_Base);
 	m_DtmViewer.get()->SetActionListener(this);
 
-	m_SelectionViewer.reset(new SelectionViewer);
-	addAndMakeVisible(m_SelectionViewer.get());
-	m_SelectionViewer.get()->SetBase(&m_Base);
-	m_SelectionViewer.get()->SetActionListener(this);
-
 	m_SelTreeViewer.reset(new SelTreeViewer);
 	addAndMakeVisible(m_SelTreeViewer.get());
 	m_SelTreeViewer.get()->SetBase(&m_Base);
@@ -55,13 +50,11 @@ MainComponent::MainComponent()
 	m_Panel.get()->addPanel(-1, m_LayerViewer.get(), false);
 	m_Panel.get()->addPanel(-1, m_RasterLayerViewer.get(), false);
 	m_Panel.get()->addPanel(-1, m_DtmViewer.get(), false);
-	m_Panel.get()->addPanel(-1, m_SelectionViewer.get(), false);
 	m_Panel.get()->addPanel(-1, m_SelTreeViewer.get(), false);
 	m_Panel.get()->setCustomPanelHeader(m_Panel.get()->getPanel(0), new juce::TextButton(juce::translate("Layers")), true);
 	m_Panel.get()->setCustomPanelHeader(m_Panel.get()->getPanel(1), new juce::TextButton(juce::translate("Images")), true);
 	m_Panel.get()->setCustomPanelHeader(m_Panel.get()->getPanel(2), new juce::TextButton(juce::translate("DTM")), true);
 	m_Panel.get()->setCustomPanelHeader(m_Panel.get()->getPanel(3), new juce::TextButton(juce::translate("Selection")), true);
-	m_Panel.get()->setCustomPanelHeader(m_Panel.get()->getPanel(4), new juce::TextButton(juce::translate("SelectionTree")), true);
 
 	// set up the layout and resizer bars..
 	m_VerticalLayout.setItemLayout(0, -0.2, -1.0, -0.65); 
@@ -154,13 +147,13 @@ juce::PopupMenu MainComponent::getMenuForIndex(int menuIndex, const juce::String
 		GeoportailSubMenu.addCommandItem(&m_CommandManager, CommandIDs::menuAddGeoportailCartes);
 		WmtsSubMenu.addSubMenu(juce::translate("Geoportail (France)"),GeoportailSubMenu);
 		menu.addSubMenu(juce::translate("Add WMTS / TMS server"), WmtsSubMenu);
-		menu.addCommandItem(&m_CommandManager, CommandIDs::menuZoomTotal);
 	}
 	else if (menuIndex == 3)
 	{
 		menu.addCommandItem(&m_CommandManager, CommandIDs::menuShowSidePanel);
-		menu.addCommandItem(&m_CommandManager, CommandIDs::menuShowSelectionViewer);
 		menu.addCommandItem(&m_CommandManager, CommandIDs::menuShowFeatureViewer);
+		menu.addCommandItem(&m_CommandManager, CommandIDs::menuZoomTotal);
+		menu.addCommandItem(&m_CommandManager, CommandIDs::menuZoomLevel);
 	}
 	else if (menuIndex == 4) // Help
 	{
@@ -187,8 +180,9 @@ void MainComponent::getAllCommands(juce::Array<juce::CommandID>& c)
 {
 	juce::Array<juce::CommandID> commands{ CommandIDs::menuNew, CommandIDs::menuOpenImage, CommandIDs::menuOpenVector, CommandIDs::menuOpenFolder,
 		CommandIDs::menuQuit, CommandIDs::menuUndo, CommandIDs::menuTranslate,
-		CommandIDs::menuAddVectorLayer, CommandIDs::menuAddRasterLayer, CommandIDs::menuAddDtmLayer, CommandIDs::menuZoomTotal,
-		CommandIDs::menuTest, CommandIDs::menuShowSidePanel, CommandIDs::menuShowSelectionViewer,
+		CommandIDs::menuAddVectorLayer, CommandIDs::menuAddRasterLayer, CommandIDs::menuAddDtmLayer, 
+		CommandIDs::menuZoomTotal, CommandIDs::menuZoomLevel,
+		CommandIDs::menuTest, CommandIDs::menuShowSidePanel,
 		CommandIDs::menuShowFeatureViewer, CommandIDs::menuAddOSM, CommandIDs::menuAddGeoportailOrthophoto, 
 		CommandIDs::menuAddGeoportailOrthohisto, CommandIDs::menuAddGeoportailSatellite, CommandIDs::menuAddGeoportailCartes,
 		CommandIDs::gdalAbout };
@@ -252,15 +246,13 @@ void MainComponent::getCommandInfo(juce::CommandID commandID, juce::ApplicationC
 	case CommandIDs::menuZoomTotal:
 		result.setInfo(juce::translate("Zoom total"), juce::translate("Zoom total"), "Menu", 0);
 		break;
+	case CommandIDs::menuZoomLevel:
+		result.setInfo(juce::translate("Zoom level"), juce::translate("Zoom level"), "Menu", 0);
+		break;
 	case CommandIDs::menuShowSidePanel:
 		result.setInfo(juce::translate("View Side Panel"), juce::translate("View Side Panel"), "Menu", 0);
 		if (m_Panel.get() != nullptr)
 			result.setTicked(m_Panel.get()->isVisible());
-		break;
-	case CommandIDs::menuShowSelectionViewer:
-		result.setInfo(juce::translate("View Selection Viewer"), juce::translate("View Selection Viewer"), "Menu", 0);
-		if (m_SelectionViewer.get() != nullptr)
-			result.setTicked(m_SelectionViewer.get()->isVisible());
 		break;
 	case CommandIDs::menuShowFeatureViewer:
 		result.setInfo(juce::translate("View Feature Viewer"), juce::translate("View Feature Viewer"), "Menu", 0);
@@ -331,6 +323,9 @@ bool MainComponent::perform(const InvocationInfo& info)
 	case CommandIDs::menuZoomTotal:
 		m_MapView.get()->ZoomWorld();
 		break;
+	case CommandIDs::menuZoomLevel:
+		m_MapView.get()->ZoomLevel();
+		break;
 	case CommandIDs::menuShowSidePanel:
 		if ((m_VerticalDividerBar.get() == nullptr)|| (m_Panel.get() == nullptr))
 			return false;
@@ -345,11 +340,6 @@ bool MainComponent::perform(const InvocationInfo& info)
 			m_VerticalLayout.setItemLayout(0, -0.2, -1.0, -0.65);
 		}
 		resized();
-		break;
-	case CommandIDs::menuShowSelectionViewer:
-		if (m_SelectionViewer.get() == nullptr)
-			return false;
-		m_SelectionViewer.get()->setVisible(!m_SelectionViewer.get()->isVisible());
 		break;
 	case CommandIDs::menuShowFeatureViewer:
 		if (m_FeatureViewer.get() == nullptr)
@@ -387,7 +377,6 @@ void MainComponent::actionListenerCallback(const juce::String& message)
 	}
 
 	if (message == "UpdateSelectFeatures") {
-		m_SelectionViewer.get()->SetBase(&m_Base);
 		m_SelTreeViewer.get()->SetBase(&m_Base);
 		if (m_Base.GetSelectionCount() >= 1) {
 			GeoBase::Feature geoFeature = m_Base.GetSelection(m_Base.GetSelectionCount()-1);
@@ -511,7 +500,6 @@ void MainComponent::Clear()
 	m_MapView.get()->StopThread();
 	m_Base.Clear();
 	m_FeatureViewer.get()->SetBase(&m_Base);
-	m_SelectionViewer.get()->SetBase(&m_Base);
 	m_LayerViewer.get()->SetBase(&m_Base);
 	m_RasterLayerViewer.get()->SetBase(&m_Base);
 	m_MapView.get()->SetBase(&m_Base);
@@ -595,6 +583,7 @@ bool MainComponent::AddMultiRasterLayer(juce::String server)
 	}
 	m_MapView.get()->SetFrame(m_Base.GetEnvelope());
 	m_RasterLayerViewer.get()->SetBase(&m_Base);
+	m_Panel.get()->expandPanelFully(m_RasterLayerViewer.get(), true);
 	return true;
 }
 
@@ -655,7 +644,6 @@ void MainComponent::Translate()
 	m_LayerViewer.get()->UpdateColumnName();
 	m_RasterLayerViewer.get()->UpdateColumnName();
 	m_DtmViewer.get()->UpdateColumnName();
-	m_SelectionViewer.get()->UpdateColumnName();
 }
 
 void MainComponent::Test()
