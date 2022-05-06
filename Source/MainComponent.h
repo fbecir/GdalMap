@@ -32,26 +32,15 @@ public:
   // Liste des commandes de l'application
   enum CommandIDs
   {
-    menuNew = 1,
-    menuOpenImage,
-    menuOpenVector,
-    menuOpenFolder,
-    menuQuit,
+    menuNew = 1, menuOpenImage, menuOpenVector, menuOpenFolder, menuQuit,
     menuUndo,
-    menuTranslate,
-    menuAddVectorLayer,
-    menuAddRasterLayer,
-    menuAddDtmLayer,
-    menuZoomTotal,
-    menuZoomLevel,
-    menuTest,
-    menuShowSidePanel,
-    menuShowFeatureViewer,
-    menuAddOSM,
-    menuAddGeoportailOrthophoto,
-    menuAddGeoportailOrthohisto,
-    menuAddGeoportailSatellite,
-    menuAddGeoportailCartes,
+    menuTranslate, menuTest,
+    menuAddVectorLayer, menuAddRasterLayer, menuAddDtmLayer,
+    menuZoomTotal, menuZoomLevel,
+    menuScale1k, menuScale10k, menuScale25k, menuScale100k, menuScale250k,
+    menuShowSidePanel, menuShowFeatureViewer,
+    menuAddOSM, menuAddWmtsServer,
+    menuAddGeoportailOrthophoto, menuAddGeoportailOrthohisto, menuAddGeoportailSatellite, menuAddGeoportailCartes,
     gdalAbout
   };
 
@@ -109,6 +98,7 @@ private:
   bool AddMultiRasterLayer(juce::String server = "");
   bool AddDtmLayer(juce::String dtmfile = "");
   bool AddOSMServer();
+  bool AddWmtsServer();
 
   void Test();
 

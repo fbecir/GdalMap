@@ -47,6 +47,7 @@ void MapThread::SetDimension(const int& w, const int& h)
 	if ((w != m_Vector.getWidth()) || (h != m_Vector.getHeight())) {
 		m_Vector = juce::Image(juce::Image::PixelFormat::ARGB, w, h, true);
 		m_Raster = juce::Image(juce::Image::PixelFormat::RGB, w, h, true);
+		m_Raster.clear(m_Raster.getBounds(), juce::Colour(0xFFFFFFFF));
 		m_Overlay = juce::Image(juce::Image::PixelFormat::ARGB, w, h, true);
 		m_Dtm = juce::Image(juce::Image::PixelFormat::ARGB, w, h, true);
 		m_RawDtm = juce::Image(juce::Image::PixelFormat::ARGB, w, h, true);
@@ -65,7 +66,7 @@ void MapThread::SetUpdate(bool overlay, bool raster, bool dtm, bool vector)
 void MapThread::PrepareImages(bool totalUpdate, int dX, int dY)
 {
 	if (m_bRaster) {
-		m_Raster.clear(m_Raster.getBounds());
+		m_Raster.clear(m_Raster.getBounds(), juce::Colour(0xFFFFFFFF));
 		m_bRasterDone = false;
 	}
 	if (m_bDtm) {
@@ -343,7 +344,7 @@ void MapThread::DrawSelection()
 	if (!mml.lockWasGained())
 		return;
 	juce::Graphics g(m_Overlay);
-	g.setColour(juce::Colours::pink);
+
 	OGREnvelope env;
 	OGRLayer* lastLayer = nullptr;
 	OGRCoordinateTransformation* poTransfo = nullptr;
@@ -373,27 +374,36 @@ void MapThread::DrawSelection()
 			int H = (int)round(env.MaxY - env.MinY) / m_dScale;
 
 			if ((W < 25) && (H < 25)) {
-				g.setColour(juce::Colours::aqua);
+				g.setColour(juce::Colours::black);
 				g.drawRect((int)floor((env.MinX - m_dX0) / m_dScale)-3, (int)floor((m_dY0 - env.MaxY) / m_dScale)-3, W+6, H+6);
-				g.setColour(juce::Colours::darkorchid);
+				g.setColour(juce::Colours::white);
 				g.drawRect((int)floor((env.MinX - m_dX0) / m_dScale) - 2, (int)floor((m_dY0 - env.MaxY) / m_dScale) - 2, W + 4, H + 4);
 			}
 			else {
 				DrawGeometry(poGeom);
 				juce::Path::Iterator iter(m_Path);
 				int numPoint = 0;
+				if (!m_bFill) 
+					numPoint = 1;
 				bool needText = true;
 				float dim = std::min<float>(std::max<float>((float)(4.f / m_dScale), 2.f), 4.f);
 				if ((W < 100) && (H < 100) && (poGeom->getDimension() > 0))
 					needText = false;
 				while (iter.next()) {
-					g.setColour(juce::Colours::aqua);
+					g.setColour(juce::Colours::black);
 					g.drawRect(iter.x1 - dim, iter.y1 - dim, 2.f * dim, 2.f * dim);
-					g.setColour(juce::Colours::darkorchid);
+					g.setColour(juce::Colours::white);
 					g.drawRect(iter.x1 - dim + 1, iter.y1 - dim + 1, 2.f * dim - 2, 2.f * dim - 2);
-					if (needText)
-						if ((!m_bFill) || (iter.elementType != juce::Path::Iterator::startNewSubPath))
+					if (needText) {
+						if ((!m_bFill) || (iter.elementType != juce::Path::Iterator::startNewSubPath)) {
+							g.drawSingleLineText(juce::String(numPoint), iter.x1 + 4, iter.y1);
+							g.drawSingleLineText(juce::String(numPoint), iter.x1 + 6, iter.y1);
+							g.drawSingleLineText(juce::String(numPoint), iter.x1 + 5, iter.y1+1);
+							g.drawSingleLineText(juce::String(numPoint), iter.x1 + 5, iter.y1-1);
+							g.setColour(juce::Colours::black);
 							g.drawSingleLineText(juce::String(numPoint), iter.x1 + 5, iter.y1);
+						}
+					}
 					numPoint++;
 				}
 			}

@@ -146,14 +146,23 @@ juce::PopupMenu MainComponent::getMenuForIndex(int menuIndex, const juce::String
 		GeoportailSubMenu.addCommandItem(&m_CommandManager, CommandIDs::menuAddGeoportailSatellite);
 		GeoportailSubMenu.addCommandItem(&m_CommandManager, CommandIDs::menuAddGeoportailCartes);
 		WmtsSubMenu.addSubMenu(juce::translate("Geoportail (France)"),GeoportailSubMenu);
+		WmtsSubMenu.addCommandItem(&m_CommandManager, CommandIDs::menuAddWmtsServer);
 		menu.addSubMenu(juce::translate("Add WMTS / TMS server"), WmtsSubMenu);
 	}
 	else if (menuIndex == 3)
 	{
 		menu.addCommandItem(&m_CommandManager, CommandIDs::menuShowSidePanel);
 		menu.addCommandItem(&m_CommandManager, CommandIDs::menuShowFeatureViewer);
+		menu.addSeparator();
 		menu.addCommandItem(&m_CommandManager, CommandIDs::menuZoomTotal);
 		menu.addCommandItem(&m_CommandManager, CommandIDs::menuZoomLevel);
+		juce::PopupMenu ScaleSubMenu;
+		ScaleSubMenu.addCommandItem(&m_CommandManager, CommandIDs::menuScale1k);
+		ScaleSubMenu.addCommandItem(&m_CommandManager, CommandIDs::menuScale10k);
+		ScaleSubMenu.addCommandItem(&m_CommandManager, CommandIDs::menuScale25k);
+		ScaleSubMenu.addCommandItem(&m_CommandManager, CommandIDs::menuScale100k);
+		ScaleSubMenu.addCommandItem(&m_CommandManager, CommandIDs::menuScale250k);
+		menu.addSubMenu(juce::translate("Scale"), ScaleSubMenu);
 	}
 	else if (menuIndex == 4) // Help
 	{
@@ -185,6 +194,8 @@ void MainComponent::getAllCommands(juce::Array<juce::CommandID>& c)
 		CommandIDs::menuTest, CommandIDs::menuShowSidePanel,
 		CommandIDs::menuShowFeatureViewer, CommandIDs::menuAddOSM, CommandIDs::menuAddGeoportailOrthophoto, 
 		CommandIDs::menuAddGeoportailOrthohisto, CommandIDs::menuAddGeoportailSatellite, CommandIDs::menuAddGeoportailCartes,
+		CommandIDs::menuAddWmtsServer, 
+		CommandIDs::menuScale1k, CommandIDs::menuScale10k, CommandIDs::menuScale25k, CommandIDs::menuScale100k, CommandIDs::menuScale250k,
 		CommandIDs::gdalAbout };
 	c.addArray(commands);
 }
@@ -243,11 +254,29 @@ void MainComponent::getCommandInfo(juce::CommandID commandID, juce::ApplicationC
 	case CommandIDs::menuAddGeoportailCartes:
 		result.setInfo(juce::translate("Cartography"), juce::translate("Cartography"), "Menu", 0);
 		break;
+	case CommandIDs::menuAddWmtsServer:
+		result.setInfo(juce::translate("WMTS Server"), juce::translate("WMTS Server"), "Menu", 0);
+		break;
 	case CommandIDs::menuZoomTotal:
 		result.setInfo(juce::translate("Zoom total"), juce::translate("Zoom total"), "Menu", 0);
 		break;
 	case CommandIDs::menuZoomLevel:
 		result.setInfo(juce::translate("Zoom level"), juce::translate("Zoom level"), "Menu", 0);
+		break;
+	case CommandIDs::menuScale1k:
+		result.setInfo(juce::translate("1 : 1000"), juce::translate("1 : 1000"), "Menu", 0);
+		break;
+	case CommandIDs::menuScale10k:
+		result.setInfo(juce::translate("1 : 10 000"), juce::translate("1 : 10 000"), "Menu", 0);
+		break;
+	case CommandIDs::menuScale25k:
+		result.setInfo(juce::translate("1 : 25 000"), juce::translate("1 : 25 000"), "Menu", 0);
+		break;
+	case CommandIDs::menuScale100k:
+		result.setInfo(juce::translate("1 : 100 000"), juce::translate("1 : 100 000"), "Menu", 0);
+		break;
+	case CommandIDs::menuScale250k:
+		result.setInfo(juce::translate("1 : 250 000"), juce::translate("1 : 250 000"), "Menu", 0);
 		break;
 	case CommandIDs::menuShowSidePanel:
 		result.setInfo(juce::translate("View Side Panel"), juce::translate("View Side Panel"), "Menu", 0);
@@ -320,11 +349,29 @@ bool MainComponent::perform(const InvocationInfo& info)
 	case CommandIDs::menuAddGeoportailCartes:
 		AddMultiRasterLayer("WMTS:https://wxs.ign.fr/cartes/geoportail/wmts?SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetCapabilities");
 		break;
+	case CommandIDs::menuAddWmtsServer:
+		AddWmtsServer();
+		break;
 	case CommandIDs::menuZoomTotal:
 		m_MapView.get()->ZoomWorld();
 		break;
 	case CommandIDs::menuZoomLevel:
 		m_MapView.get()->ZoomLevel();
+		break;
+	case CommandIDs::menuScale1k:
+		m_MapView.get()->ZoomScale(1000);
+		break;
+	case CommandIDs::menuScale10k:
+		m_MapView.get()->ZoomScale(10000);
+		break;
+	case CommandIDs::menuScale25k:
+		m_MapView.get()->ZoomScale(25000);
+		break;
+	case CommandIDs::menuScale100k:
+		m_MapView.get()->ZoomScale(100000);
+		break;
+	case CommandIDs::menuScale250k:
+		m_MapView.get()->ZoomScale(250000);
 		break;
 	case CommandIDs::menuShowSidePanel:
 		if ((m_VerticalDividerBar.get() == nullptr)|| (m_Panel.get() == nullptr))
@@ -615,6 +662,7 @@ bool MainComponent::AddDtmLayer(juce::String dtmfile)
 
 	return true;
 }
+
 //==============================================================================
 // Ajout d'une couche TMS OSM
 //==============================================================================
@@ -626,6 +674,23 @@ bool MainComponent::AddOSMServer()
 	if (resourceFile.existsAsFile())
 		return AddRasterLayer(resourceFile.getFullPathName());
 	return false;
+}
+
+//==============================================================================
+// Ajout d'un serveur WMTS
+//==============================================================================
+bool MainComponent::AddWmtsServer()
+{
+	juce::AlertWindow alert(juce::translate("Add a WMTS server"), juce::translate("URL of the WMTS server"), juce::MessageBoxIconType::QuestionIcon);
+	alert.addButton(juce::translate("Cancel"), 0);
+	alert.addButton(juce::translate("OK"), 1);
+	alert.addTextEditor("Url", "https://wxs.ign.fr/ortho/geoportail/wmts", juce::translate("Url : "));
+	
+	if (alert.runModalLoop() == 0)
+		return false;
+	juce::String address = "WMTS:" + alert.getTextEditorContents("Url");
+	address += "?SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetCapabilities";
+	return AddMultiRasterLayer(address);
 }
 
 //==============================================================================
@@ -648,6 +713,24 @@ void MainComponent::Translate()
 
 void MainComponent::Test()
 {
-	
+	//juce::String filename = "MVT:https://wxs.ign.fr/essentiels/geoportail/tms/1.0.0/ADMIN_EXPRESS/6
+	//juce::String filename = "MVT:https://wxs.ign.fr/essentiels/geoportail/tms/1.0.0/PLAN.IGN/0";
+	juce::String filename = "WFS:https://wxs.ign.fr/essentiels/geoportail/wfs?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetCapabilities";
+	CPLStringList options;
+	//options.AddNameValue("METADATA_FILE", "https://wxs.ign.fr/essentiels/geoportail/tms/1.0.0/PLAN.IGN/metadata.json");
+	//options.AddNameValue("ZOOM_LEVEL_AUTO", "YES");
+	//options.AddNameValue("CPL_CURL_GZIP", "NO");
+	options.AddNameValue("TRUST_CAPABILITIES_BOUNDS", "YES");
+
+	if (!m_Base.OpenVectorDataset(filename.getCharPointer(), options)) {
+		juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "GdalMap",
+			filename + juce::translate(" : this file cannot be opened"), "OK");
+		return ;
+	}
+	m_MapView.get()->SetFrame(m_Base.GetEnvelope());
+	m_MapView.get()->RenderMap(true, false, false, true, true);
+	m_LayerViewer.get()->SetBase(&m_Base);
+
+	return ;
 }
 

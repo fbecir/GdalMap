@@ -21,7 +21,7 @@ public:
 	virtual ~GeoBase() { Clear(); }
 	void Clear();
 
-	bool OpenVectorDataset(const char* filename);
+	bool OpenVectorDataset(const char* filename, char** options = nullptr);
 	bool OpenRasterDataset(const char* filename, const char* name = nullptr, bool visible = true,
 												 char** options = nullptr, bool dtm = false);
 	bool OpenRasterMultiDataset(const char* filename);
@@ -81,7 +81,7 @@ public:
 		OGRLayer*			m_OGRLayer;
 		int						m_Id;
 		OGREnvelope		m_Env;
-		bool					m_bTransactions;
+		bool					m_bFastSpatialFilter;
 		OGREnvelope		m_FilterRect;
 		size_t				m_nIndex;
 		std::vector<Feature> m_T;

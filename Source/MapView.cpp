@@ -234,6 +234,18 @@ void MapView::ZoomLevel()
 }
 
 //==============================================================================
+// Zoom a une echelle cartographique
+//==============================================================================
+void MapView::ZoomScale(double scale)
+{
+	auto b = getLocalBounds();
+	double X = b.getWidth() / 2, Y = b.getHeight() / 2;
+	Pixel2Ground(X, Y);
+	ComputeCartoScale(scale);
+	CenterView(X, Y);
+}
+
+//==============================================================================
 // Zoom sur une emprise
 //==============================================================================
 void MapView::ZoomEnvelope(const OGREnvelope& env, double buffer)

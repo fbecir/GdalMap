@@ -43,9 +43,9 @@ void GeoBase::Clear()
 //==============================================================================
 // Ouverture d'un dataset vectoriel
 //==============================================================================
-bool GeoBase::OpenVectorDataset(const char* filename)
+bool GeoBase::OpenVectorDataset(const char* filename, char** options)
 {
-	GDALDataset* poDataset = GDALDataset::Open(filename, GDAL_OF_VECTOR | GDAL_OF_READONLY);
+	GDALDataset* poDataset = GDALDataset::Open(filename, GDAL_OF_VECTOR | GDAL_OF_READONLY, nullptr, options);
 	if (poDataset == NULL) 
 		return false;
 
@@ -160,19 +160,48 @@ bool GeoBase::IsOpen(const char* filename)
 size_t GeoBase::SelectFeatures(const OGREnvelope& env, OGRSpatialReference* spatialRef)
 {
 	m_Selection.clear();
+	if (!OGRGeometryFactory::haveGEOS())
+		return 0;
 	for (int layerId = 0; layerId < GetVectorLayerCount(); layerId++) {
 		VectorLayer* poLayer = GetVectorLayer(layerId);
 		if (poLayer == nullptr)
 			continue;
+		if (!poLayer->m_Repres.Visible)
+			continue;
 		poLayer->SetSpatialFilterRect(env, spatialRef);
 		poLayer->ResetReading();
-		GIntBig featureId;
+		OGRLinearRing ring;
+		OGRPolygon poly;
+		ring.addPoint(env.MinX, env.MinY);
+		ring.addPoint(env.MaxX, env.MinY);
+		ring.addPoint(env.MaxX, env.MaxY);
+		ring.addPoint(env.MinX, env.MaxY);
+		ring.addPoint(env.MinX, env.MinY);
+		ring.closeRings();
+		poly.addRing(&ring);
+		if (!poly.IsValid())
+			continue;
+		OGRCoordinateTransformation* poTransfo = OGRCreateCoordinateTransformation(spatialRef, poLayer->SpatialRef());
+		if (poTransfo == nullptr)
+			continue;
+		poly.transform(poTransfo);
+
 		OGREnvelope featureEnv;
+		GIntBig featureId;
 		do {
-			if (!poLayer->GetNextFeatureId(featureId, featureEnv))
+			OGRFeature* poFeature = poLayer->GetNextFeature();
+			if (poFeature == nullptr)
 				break;
-			m_Selection.push_back(Feature(featureId, featureEnv, poLayer->Id()));
+			OGRGeometry* poGeom = poFeature->GetGeometryRef();
+			if (poGeom->Intersects(&poly) == TRUE) {
+				poGeom->getEnvelope(&featureEnv);
+				featureId = poFeature->GetFID();
+				if (featureId != OGRNullFID)
+					m_Selection.push_back(Feature(poFeature->GetFID(), featureEnv, poLayer->Id()));
+			}
+			OGRFeature::DestroyFeature(poFeature);
 		} while (true);
+		delete poTransfo;
 	}
 	return m_Selection.size();
 }
@@ -183,8 +212,6 @@ size_t GeoBase::SelectFeatures(const OGREnvelope& env, OGRSpatialReference* spat
 bool GeoBase::SelectFeatureFields(int layerId, GIntBig featureId)
 {
 	m_Field.clear();
-	if (layerId >= GetVectorLayerCount())
-		return false;
 	OGRLayer* poLayer = GetOGRLayer(layerId);
 	if (poLayer == nullptr)
 		return false;
@@ -247,8 +274,12 @@ template<typename T> static bool GeoBase::ReorderLayer(std::vector<T*>* V, int o
 //==============================================================================
 OGREnvelope GeoBase::ConvertEnvelop(const OGREnvelope& env, OGRSpatialReference* fromRef, OGRSpatialReference* toRef)
 {
-	OGREnvelope result;
+	if ((fromRef == nullptr) || (toRef == nullptr))
+		return env;
 	OGRCoordinateTransformation* poTransfo = OGRCreateCoordinateTransformation(fromRef, toRef);
+	if (poTransfo == nullptr)
+		return env;
+	OGREnvelope result;
 	double X = env.MinX, Y = env.MinY;	// Bottom Left
 	poTransfo->Transform(1, &X, &Y);		
 	result.Merge(X, Y);									
@@ -273,7 +304,7 @@ GeoBase::VectorLayer::VectorLayer(int id)
 	m_Dataset = nullptr;
 	m_OGRLayer = nullptr; 
 	m_Id = id;
-	m_bTransactions = false;
+	m_bFastSpatialFilter = false;
 	m_nIndex = 0;
 	m_Repres.PenColor = 0xFF008800;
 	m_Repres.FillColor = 0x55770000;
@@ -286,30 +317,35 @@ GeoBase::VectorLayer::VectorLayer(int id)
 //==============================================================================
 bool GeoBase::VectorLayer::SetDataset(GDALDataset* poDataset, int id)
 {
-	if (id > poDataset->GetLayerCount())
-		return false;
 	m_OGRLayer = poDataset->GetLayer(id);
 	if (m_OGRLayer == nullptr)
 		return false;
-	if (poDataset->TestCapability(ODsCTransactions)) {
-		std::string geom = m_OGRLayer->GetGeometryColumn();
-		if (geom.size() < 1) // Layer non geometrique
-			return false;
-		m_bTransactions = true;
+	if ( (m_OGRLayer->TestCapability(OLCFastSpatialFilter)) || 
+		(m_OGRLayer->TestCapability(OLCTransactions)) || (m_OGRLayer->TestCapability(OLCFastGetExtent)) ) {
+		if (m_OGRLayer->TestCapability(OLCTransactions)) {
+			std::string geom = m_OGRLayer->GetGeometryColumn();
+			if (geom.size() < 1) // Layer non geometrique
+				return false;
+		}
+		m_bFastSpatialFilter = true;
 		m_OGRLayer->GetExtent(&m_Env);
 		return true;
 	}
+	
 	OGREnvelope env;
-	for (GIntBig i = 0; i < m_OGRLayer->GetFeatureCount(); i++) {
-		OGRFeature* poFeature = m_OGRLayer->GetFeature(i);
+	m_OGRLayer->ResetReading();
+	do {
+		OGRFeature* poFeature = m_OGRLayer->GetNextFeature();
 		if (poFeature == nullptr)
-			continue;
+			break;
 		const OGRGeometry* poGeom = poFeature->GetGeometryRef();
 		poGeom->getEnvelope(&env);
-		m_T.push_back(Feature(i, env, id));
+		m_T.push_back(Feature(poFeature->GetFID(), env, id));
 		OGRFeature::DestroyFeature(poFeature);
 		m_Env.Merge(env);
-	}
+	} while (true);
+	if (m_T.size() < 1)
+		return false;
 	m_FilterRect = m_Env;
 	return true;
 }
@@ -333,7 +369,7 @@ OGRFeature* GeoBase::VectorLayer::GetNextFeature()
 {
 	if (m_OGRLayer == nullptr)
 		return nullptr;
-	if (m_bTransactions)
+	if (m_bFastSpatialFilter)
 		return m_OGRLayer->GetNextFeature();
 	for (size_t i = m_nIndex; i < m_T.size(); i++) {
 		if (!m_T[i].Intersect(m_FilterRect))
@@ -351,7 +387,7 @@ bool GeoBase::VectorLayer::GetNextFeatureId(GIntBig& id, OGREnvelope& env)
 {
 	if (m_OGRLayer == nullptr)
 		return false;
-	if (m_bTransactions) {
+	if (m_bFastSpatialFilter) {
 		OGRFeature* poFeature = m_OGRLayer->GetNextFeature();
 		if (poFeature == nullptr)
 			return false;
